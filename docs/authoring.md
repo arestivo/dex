@@ -72,7 +72,7 @@ The declaration takes:
 | Part | Meaning | Default |
 | --- | --- | --- |
 | `#id` | the slide's permanent id (required) | none |
-| `layout=name` | the layout, a folder in `layouts/` | `default` |
+| `layout=name` | the layout (see `dex docs layouts`) | `default` |
 | `.class` | extra classes on the slide, e.g. `.small` | none |
 
 ## Slide ids and deep links
@@ -89,15 +89,7 @@ Links like `#12` (remark.js style, by position) still work: the viewer opens sli
 
 ## Layouts and slots
 
-A layout decides where content goes. Built-in layouts:
-
-| Layout | Use for | Slots |
-| --- | --- | --- |
-| `default` | most slides: a title bar and a body | `title`, default |
-| `title` | the deck's first slide | `title`, `subtitle`, default, `footer` |
-| `section` | chapter dividers, listed by `::toc` | `title`, default |
-| `center` | a single centred diagram, quote or statement | `title`, default |
-| `two-columns` | side-by-side content | `title`, default, `left`, `right` |
+A layout decides where content goes. Choose one per slide with `layout=<name>` (default: `default`). Run `dex docs layouts` for the available layouts, what each is for, and its slots.
 
 **Slots.** Content goes to the layout's *default* slot unless you start a named slot with `::slot{name=...}`, which runs until the next `::slot` or the end of the slide:
 
@@ -127,7 +119,7 @@ Both send requests, but:
 ::slide{#title layout=title}
 ```
 
-To add a layout, see [layouts.md](layouts.md).
+Layouts belong to the Dex engine, not to content folders: a new layout is a change to the engine (see `dex docs layouts`).
 
 ## Content
 
@@ -216,7 +208,7 @@ Use them in `:::div{...}`, `:span[...]{...}` or on the slide itself (`::slide{#x
 | `.columns` | children side by side in equal columns |
 | `.badge` | small highlighted label |
 
-They live in [styles/utilities.css](../styles/utilities.css). Keep that list short.
+They are part of the Dex engine (its `styles/utilities.css`). If decks keep needing a style that isn't here, ask for it to be added to the engine instead of styling a single slide.
 
 ## Assets and links
 

@@ -26,19 +26,23 @@ alias dex="node $PWD/src/cli/main.ts"
 ## Usage
 
 ```sh
-cd ~/talks
+mkdir ~/talks && cd ~/talks
+dex init         # decks/, .gitignore, AGENTS.md + skills for AI agents
 dex dev          # http://localhost:5173/  →  /http/
 dex check        # validate every deck (or: dex check http)
 dex fit          # find slides whose content doesn't fit (needs Chromium)
 dex build        # static site in ./dist (or --dist ~/www/slides)
 dex preview      # serve the built site like a static host
+dex docs         # the deck format reference (dex docs layouts: the layouts)
 ```
+
+Re-run `dex init` after upgrading Dex: it refreshes only the Dex-managed block in `AGENTS.md` and the Dex skills, and keeps your own notes.
 
 Inside this repository, `pnpm dev`, `pnpm check:decks`, `pnpm build`… do the same with the repository as the content folder. Its `decks/` and `dist/` are git-ignored, for local testing only.
 
-- Writing decks: [docs/authoring.md](docs/authoring.md)
-- Adding layouts: [docs/layouts.md](docs/layouts.md)
-- Migrating a remark.js deck: [.agents/skills/migrate-remark-deck/SKILL.md](.agents/skills/migrate-remark-deck/SKILL.md)
+- Writing decks: [docs/authoring.md](docs/authoring.md) (also `dex docs`)
+- Layouts: [docs/layouts.md](docs/layouts.md) (also `dex docs layouts`)
+- Agent skills installed by `dex init`: [scaffold/skills/](scaffold/skills/) (`author-deck`, `migrate-remark-deck`)
 - Working on the engine (structure, commands, conventions, specs): [AGENTS.md](AGENTS.md)
 
 ## Viewer shortcuts

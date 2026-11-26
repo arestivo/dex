@@ -6,15 +6,23 @@ import { styleText } from 'node:util'
 import type { ContentLocations } from '../core/config.ts'
 import { formatDiagnostic, hasErrors, sortDiagnostics } from '../core/diagnostics.ts'
 import { compileWorkspace } from '../core/workspace.ts'
+import { staleInstructions } from './scaffold.ts'
 
 export async function runCheck(
   content: ContentLocations,
   slugs: readonly string[],
 ): Promise<number> {
-  const { decks, layouts, diagnostics } = await compileWorkspace(
-    { root: content.root, decksDir: content.decksDir },
-    slugs,
-  )
+  const result = await compileWorkspace({ root: content.root, decksDir: content.decksDir }, slugs)
+  const { decks, layouts } = result
+  const diagnostics = [
+    ...result.diagnostics,
+    ...staleInstructions(content).map((file) => ({
+      severity: 'warning' as const,
+      file,
+      message:
+        'Dex-managed instructions differ from the installed engine: run `dex init` to refresh them.',
+    })),
+  ]
 
   for (const diagnostic of sortDiagnostics(diagnostics)) {
     const color = diagnostic.severity === 'error' ? 'red' : 'yellow'

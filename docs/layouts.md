@@ -1,6 +1,20 @@
 # Layouts
 
-A layout is a folder in the engine's `layouts/` (layouts belong to the engine, not to content folders). Adding a layout needs no code: create the folder and use it with `::slide{#id layout=<folder-name>}`.
+A layout decides where a slide's content goes. Each slide picks one with `::slide{#id layout=<name>}`; without `layout=` it uses `default`. How to fill slots is in `dex docs` (section "Layouts and slots").
+
+## Available layouts
+
+| Layout | Use for | Slots |
+| --- | --- | --- |
+| `default` | most slides: a title bar and a body | `title`, default |
+| `title` | the deck's first slide | `title`, `subtitle`, default, `footer` |
+| `section` | chapter dividers, listed by `::toc` | `title`, default |
+| `center` | a single centred diagram, quote or statement | `title`, default |
+| `two-columns` | side-by-side content | `title`, default, `left`, `right` |
+
+## Making a layout
+
+Layouts belong to the **Dex engine**, not to content folders: everything below is done in the engine repository, and every content folder gets the new layout. A layout is a folder in the engine's `layouts/`. Adding one needs no code: create the folder and use it with `::slide{#id layout=<folder-name>}`.
 
 ```text
 layouts/
@@ -11,7 +25,7 @@ layouts/
 
 The folder name is the layout name and must match `^[a-z][a-z0-9-]*$`. The `default` layout must exist.
 
-## template.html
+### template.html
 
 An HTML fragment (no `<html>`/`<body>`) that becomes the inside of the slide's `<section class="slide" data-layout="quote">`. Mark where content goes with `<slot>` elements:
 
@@ -44,13 +58,13 @@ An HTML fragment (no `<html>`/`<body>`) that becomes the inside of the slide's `
 
 Missing optional values are empty, and unknown variables are errors. Variables are only replaced in the template, never in slide content (so `{{x}}` in a code sample is safe).
 
-**Structure conventions** (shared styles in `styles/components/slide.css`):
+**Structure conventions** (shared styles in the engine's `styles/components/slide.css`):
 
 - `header.slide__header` holds the title and is hidden when empty;
 - `div.slide__body` holds the main content and scrolls if it overflows;
 - name layout-specific elements BEM-style (`.quote__source`). Blocks with `__` in their class don't get the automatic spacing that content blocks get.
 
-## style.css
+### style.css
 
 Plain CSS, automatically wrapped so it only applies to slides using this layout:
 
@@ -78,17 +92,17 @@ So in `style.css`:
   }
   ```
 
-- use the design tokens from `styles/tokens.css` (`--color-*`, `--space-*`, `--radius-*`) rather than raw values, so both themes work;
+- use the design tokens from the engine's `styles/tokens.css` (`--color-*`, `--space-*`, `--radius-*`) rather than raw values, so both themes work;
 - size things in `em` so they scale with the slide;
 - the slide is a CSS grid with one column (`grid-template-rows` is up to you) and a size container, so `cqh`/`cqw` are percentages of the slide;
 - `@import` and `@layer` are not allowed: the wrapper adds the layer;
 - layout styles beat component styles (callouts, code...), and utility classes beat layout styles.
 
-## Checklist for a new layout
+### Checklist for a new layout
 
 1. Create `layouts/<name>/template.html` with a leading comment listing its slots.
 2. Add `style.css` if needed.
 3. Use it in a deck and run `dex check` (template errors such as unknown variables show up here).
 4. Look at it with `dex dev`, in both themes (`d` toggles the theme).
 5. Run `dex fit` if the layout changes how much content fits.
-6. Add it to the layouts table in [authoring.md](authoring.md#layouts-and-slots).
+6. Add it to the "Available layouts" table at the top of this document (the engine's `docs/layouts.md`).

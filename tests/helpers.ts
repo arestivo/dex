@@ -65,3 +65,26 @@ export function slide(id: string, content: string, attributes = ''): string {
 export function deck(...slides: string[]): string {
   return slides.join('\n---\n\n')
 }
+
+export interface CliResult {
+  readonly code: number
+  readonly stdout: string
+  readonly stderr: string
+}
+
+/** Runs the `dex` CLI in `cwd` and captures its output (never throws). */
+export async function runDex(cwd: string, ...args: string[]): Promise<CliResult> {
+  const { execFile } = await import('node:child_process')
+  const { promisify } = await import('node:util')
+  try {
+    const { stdout, stderr } = await promisify(execFile)(
+      process.execPath,
+      [`${PROJECT_ROOT}/src/cli/main.ts`, ...args],
+      { cwd },
+    )
+    return { code: 0, stdout, stderr }
+  } catch (error) {
+    const failure = error as { code: number; stdout: string; stderr: string }
+    return { code: failure.code, stdout: failure.stdout, stderr: failure.stderr }
+  }
+}

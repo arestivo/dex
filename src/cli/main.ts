@@ -7,21 +7,26 @@ import { parseArgs } from 'node:util'
 import { buildSite, startDevServer, startPreview } from '../build/site.ts'
 import { contentLocations } from '../core/config.ts'
 import { runCheck } from './check.ts'
+import { runDocs } from './docs.ts'
 import { runFit } from './fit.ts'
+import { runInit } from './init.ts'
 
-const USAGE = `Usage: dex <command> [options] [slug...]
+const USAGE = `Usage: dex <command> [options] [args...]
 
 Commands:
+  init              prepare this folder for decks and agents (safe to re-run)
   dev               serve the decks with live reload
   build             build the static site
   preview           serve the built site like a static host
   check [slug...]   validate decks (no build)
   fit [slug...]     build, then report slides whose content does not fit
+  docs [topic]      print the reference: authoring (default), layouts
 
 Options:
   --folder <dir>    content folder containing decks/ (default: current folder)
   --dist <dir>      output folder for the site (default: <folder>/dist)
   --port <n>        port for dev and preview
+  --list            with docs: list the topics
   -h, --help        show this help
 `
 
@@ -34,11 +39,12 @@ async function main(argv: readonly string[]): Promise<number> {
       folder: { type: 'string' },
       dist: { type: 'string' },
       port: { type: 'string' },
+      list: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
   })
 
-  const [command, ...slugs] = positionals
+  const [command, ...args] = positionals
   if (values.help || command === undefined) {
     console.log(USAGE)
     return values.help ? 0 : 1
@@ -65,10 +71,14 @@ async function main(argv: readonly string[]): Promise<number> {
       server.printUrls()
       return 0
     }
+    case 'init':
+      return runInit(content)
     case 'check':
-      return runCheck(content, slugs)
+      return runCheck(content, args)
     case 'fit':
-      return runFit(content, slugs)
+      return runFit(content, args)
+    case 'docs':
+      return runDocs(args[0], values.list === true)
     default:
       console.error(`Unknown command "${command}".\n\n${USAGE}`)
       return 1
