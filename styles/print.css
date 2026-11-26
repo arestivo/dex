@@ -1,0 +1,54 @@
+/* Print: one slide per page at the slide's aspect ratio, no viewer chrome. */
+@layer print {
+  @page {
+    size: 16in 9in;
+    margin: 0;
+  }
+
+  @media print {
+    :root {
+      color-scheme: light;
+    }
+
+    body {
+      background: none;
+    }
+
+    .deck,
+    .deck[data-mode="present"] {
+      position: static;
+      display: block;
+      padding: 0;
+      container-type: normal;
+      overflow: visible;
+    }
+
+    /* Zero specificity: only this rule sets break-after. */
+    :where(.slide:not(:last-child)) {
+      break-after: page;
+    }
+
+    .slide,
+    .deck[data-mode="present"] .slide,
+    .deck[data-mode="present"] .slide:not([data-current]) {
+      --slide-width: 16in;
+      --slide-height: 9in;
+
+      display: grid;
+      border-radius: 0;
+      box-shadow: none;
+      print-color-adjust: exact;
+    }
+
+    .slide__body {
+      overflow: visible;
+    }
+
+    .viewer-controls,
+    .viewer-progress,
+    .viewer-toast,
+    .viewer-live {
+      display: none;
+    }
+  }
+}

@@ -1,0 +1,97 @@
+/* Shared slide structure (.slide__header / .slide__body) and content typography. */
+@layer components {
+  .slide__header:empty {
+    display: none;
+  }
+
+  .slide__header :is(h1, h2) {
+    font-size: 1.75em;
+    letter-spacing: -0.01em;
+  }
+
+  .slide__body {
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .slide h2 {
+    font-size: 1.35em;
+  }
+
+  .slide h3 {
+    font-size: 1.15em;
+  }
+
+  /*
+   * Vertical rhythm between content blocks. Layout structure is excluded:
+   * direct children of the slide, and BEM elements (class contains "__").
+   */
+  .slide
+    :where(*)
+    + :where(
+      p,
+      ul,
+      ol,
+      dl,
+      pre,
+      table,
+      blockquote,
+      figure,
+      h2,
+      h3,
+      h4,
+      .callout,
+      .toc,
+      div:not([class*="__"])
+    ) {
+    margin-block-start: var(--space-3);
+  }
+
+  .slide > * {
+    margin-block-start: 0;
+  }
+
+  .slide :where(ul, ol) {
+    padding-inline-start: 1.3em;
+  }
+
+  .slide li + li,
+  .slide li > :where(ul, ol) {
+    margin-block-start: var(--space-1);
+  }
+
+  .slide li::marker {
+    color: var(--color-muted);
+  }
+
+  .slide strong {
+    font-weight: 700;
+  }
+
+  .slide small {
+    font-size: 0.75em;
+    color: var(--color-muted);
+  }
+
+  .slide blockquote {
+    padding-inline-start: 1em;
+    border-inline-start: 0.2em solid var(--color-border);
+    color: var(--color-muted);
+  }
+
+  /* Images: centred and kept within the slide. */
+  .slide img {
+    max-height: 55cqh;
+    width: auto;
+    margin-inline: auto;
+  }
+
+  .slide p:has(> img) {
+    text-align: center;
+  }
+
+  .slide p > img {
+    display: inline-block;
+    vertical-align: middle;
+  }
+}

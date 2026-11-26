@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["es2024"],
+    "types": ["node"]
+  },
+  "include": [
+    "src/core",
+    "src/cli",
+    "src/build",
+    "src/shared",
+    "tests/core",
+    "tests/e2e",
+    "tests/helpers.ts",
+    "vitest.config.ts"
+  ]
+}

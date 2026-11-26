@@ -1,0 +1,60 @@
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    line-height: var(--line-height);
+    color: var(--color-text);
+    background: var(--color-page);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    line-height: 1.2;
+    font-weight: 700;
+    text-wrap: balance;
+  }
+
+  a {
+    color: var(--color-link);
+    text-underline-offset: 0.15em;
+    text-decoration-thickness: 0.06em;
+  }
+
+  a:hover {
+    text-decoration-thickness: 0.12em;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+
+  mark {
+    background: var(--color-highlight);
+    color: inherit;
+    padding-inline: 0.1em;
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

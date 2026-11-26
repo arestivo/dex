@@ -1,0 +1,21 @@
+/* ::toc */
+@layer components {
+  .toc ol {
+    columns: 2;
+    column-gap: var(--space-5);
+    padding-inline-start: 1.4em;
+    text-align: start;
+  }
+
+  .toc li {
+    break-inside: avoid;
+  }
+
+  .toc a {
+    text-decoration: none;
+  }
+
+  .toc a:hover {
+    text-decoration: underline;
+  }
+}

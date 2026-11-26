@@ -1,0 +1,4 @@
+/* :scope is the slide. Shared .slide__header/.slide__body rules live in styles/components/slide.css. */
+:scope {
+  grid-template-rows: auto 1fr;
+}

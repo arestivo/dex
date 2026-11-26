@@ -1,0 +1,83 @@
+/**
+ * The deck viewer: turns the static page of slides into a presentation.
+ *
+ * State lives in the URL fragment. Navigating replaces the fragment (no
+ * history entry per slide); following an in-deck link uses the browser's
+ * native fragment navigation (a history entry) and is picked up through
+ * `hashchange`, so Back returns to the previous slide.
+ */
+import { createChrome } from './chrome.ts'
+import { trackIdle } from './idle.ts'
+import { type Action, listenForKeys } from './keyboard.ts'
+import { fragmentFor, resolveFragment } from './router.ts'
+import { currentTheme, onSystemThemeChange, toggleTheme } from './theme.ts'
+import { listenForSwipes } from './touch.ts'
+
+export function startViewer(deck: HTMLElement): void {
+  const slides = [...deck.querySelectorAll<HTMLElement>(':scope > .slide')]
+  if (slides.length === 0) return
+  const ids = slides.map((slide) => slide.id)
+  let current = -1
+
+  const chrome = createChrome(deck, {
+    previous: () => go(current - 1),
+    next: () => go(current + 1),
+    copyLink,
+    toggleTheme: switchTheme,
+  })
+
+  function show(index: number, announce = true): void {
+    const target = Math.min(Math.max(index, 0), slides.length - 1)
+    if (target === current) return
+    slides[current]?.removeAttribute('data-current')
+    const slide = slides[target] as HTMLElement
+    slide.setAttribute('data-current', '')
+    current = target
+    chrome.update(current, slides.length)
+    if (announce) chrome.announce(slide.getAttribute('aria-label') ?? '')
+  }
+
+  function go(index: number): void {
+    show(index)
+    history.replaceState(history.state, '', fragmentFor(ids[current] as string))
+  }
+
+  function syncWithUrl(announce: boolean): void {
+    const { index, canonical } = resolveFragment(location.hash, ids)
+    show(index, announce)
+    if (!canonical) history.replaceState(history.state, '', fragmentFor(ids[index] as string))
+  }
+
+  function switchTheme(): void {
+    toggleTheme()
+    chrome.setDarkPressed(currentTheme() === 'dark')
+  }
+
+  async function copyLink(): Promise<void> {
+    const url = new URL(fragmentFor(ids[current] as string), location.href).href
+    try {
+      await navigator.clipboard.writeText(url)
+      chrome.toast('Link copied')
+    } catch {
+      chrome.toast(url)
+    }
+  }
+
+  const actions: Record<Action, () => void> = {
+    next: () => go(current + 1),
+    previous: () => go(current - 1),
+    first: () => go(0),
+    last: () => go(slides.length - 1),
+    'toggle-theme': switchTheme,
+  }
+
+  deck.dataset.mode = 'present'
+  syncWithUrl(false)
+  chrome.setDarkPressed(currentTheme() === 'dark')
+
+  window.addEventListener('hashchange', () => syncWithUrl(true))
+  listenForKeys((action) => actions[action]())
+  listenForSwipes(deck, (direction) => (direction === 'left' ? actions.next() : actions.previous()))
+  onSystemThemeChange(() => chrome.setDarkPressed(currentTheme() === 'dark'))
+  trackIdle(deck)
+}

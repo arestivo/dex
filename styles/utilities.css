@@ -1,0 +1,61 @@
+/*
+ * Utilities: single-purpose classes for use from slides, e.g.
+ *   :::div{.smaller}   or   :span[text]{.muted}
+ * Keep this list short and documented in docs/authoring.md.
+ */
+@layer utilities {
+  .large {
+    font-size: 1.2em;
+  }
+
+  .small {
+    font-size: 0.85em;
+  }
+
+  .smaller {
+    font-size: 0.72em;
+  }
+
+  .tiny {
+    font-size: 0.6em;
+  }
+
+  .center {
+    text-align: center;
+  }
+
+  .center > :is(pre, table, img) {
+    margin-inline: auto;
+  }
+
+  .muted {
+    color: var(--color-muted);
+  }
+
+  .accent {
+    color: var(--color-accent);
+  }
+
+  /* Children laid out side by side in equal columns. */
+  .columns {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: var(--space-4);
+    align-items: start;
+  }
+
+  .columns > * {
+    margin-block-start: 0;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.05em 0.45em;
+    font-size: 0.8em;
+    font-weight: 700;
+    color: var(--color-bg);
+    background: var(--color-accent);
+    border-radius: var(--radius-1);
+  }
+}

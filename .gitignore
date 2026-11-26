@@ -1,0 +1,10 @@
+# Content is not part of the engine: decks and built sites live in content
+# folders (see AGENTS.md). Local copies here are for testing only.
+/decks/
+/dist/
+
+node_modules/
+coverage/
+*.log
+.DS_Store
+.claude/settings.local.json

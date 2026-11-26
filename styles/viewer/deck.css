@@ -1,0 +1,70 @@
+/*
+ * The deck and the slide box.
+ *
+ * Without JavaScript (document mode) slides are stacked like pages.
+ * The viewer sets `data-mode="present"` on .deck to show one slide at a
+ * time, fitted to the viewport.
+ *
+ * Slides scale with pure CSS: .deck is a container, the slide width is
+ * derived from container units and the font size from the slide height,
+ * so everything inside sized in `em` scales with the slide.
+ */
+@layer viewer {
+  .deck {
+    container-type: inline-size;
+    display: grid;
+    justify-items: center;
+    gap: 2rem;
+    padding: 2rem 1rem;
+  }
+
+  .slide {
+    --slide-width: min(100cqw, 72rem);
+    --slide-height: calc(var(--slide-width) * var(--slide-ratio-h) / var(--slide-ratio-w));
+
+    /* The slide is a container too, so content can use cqh/cqw. */
+    container-type: size;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: stretch;
+    gap: var(--space-3);
+    width: var(--slide-width);
+    height: var(--slide-height);
+    padding: var(--slide-padding-block) var(--slide-padding-inline);
+    overflow: hidden;
+    font-size: calc(var(--slide-height) / var(--slide-lines));
+    color: var(--color-text);
+    background: var(--color-bg);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+    scroll-margin-block: 1rem;
+  }
+
+  /* Presentation mode (set by the viewer). */
+  .deck[data-mode="present"] {
+    container-type: size;
+    position: fixed;
+    inset: 0;
+    place-items: center;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .deck[data-mode="present"] .slide {
+    --slide-width: min(100cqw, 100cqh * var(--slide-ratio-w) / var(--slide-ratio-h));
+
+    grid-area: 1 / 1;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .deck[data-mode="present"] .slide:not([data-current]) {
+    display: none;
+  }
+
+  .deck[data-mode="present"][data-idle] {
+    cursor: none;
+  }
+}

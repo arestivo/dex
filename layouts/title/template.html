@@ -1,0 +1,11 @@
+<!--
+  title: the opening slide of a deck.
+  Every slot falls back to the deck's front matter, so an empty slide works.
+  Slots: title, subtitle, (default), footer
+-->
+<div class="cover">
+  <slot name="title"><h1>{{deck.title}}</h1></slot>
+  <slot name="subtitle"><p class="cover__subtitle">{{deck.subtitle}}</p></slot>
+  <div class="cover__body"><slot></slot></div>
+</div>
+<footer class="cover__footer"><slot name="footer"><p>{{deck.author.name}}</p></slot></footer>

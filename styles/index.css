@@ -1,0 +1,32 @@
+/*
+ * Global stylesheet entry point.
+ *
+ * Cascade layers, lowest to highest priority. Every rule in this project
+ * lives in exactly one of them, so precedence never depends on import
+ * order or selector specificity across files:
+ *
+ *   reset       normalisation of browser defaults
+ *   tokens      design tokens (custom properties), light/dark values
+ *   base        element defaults (typography, links, media)
+ *   viewer      page frame: deck stage, slide box, viewer chrome
+ *   components  reusable content blocks (callout, code, table, toc...)
+ *   layouts     per-layout styles, generated from layouts/<name>/style.css
+ *   utilities   single-purpose classes usable from :::div / :span
+ *   print       print output
+ */
+@layer reset, tokens, base, viewer, components, layouts, utilities, print;
+
+@import "./reset.css";
+@import "./tokens.css";
+@import "./base.css";
+@import "./viewer/deck.css";
+@import "./viewer/chrome.css";
+@import "./components/slide.css";
+@import "./components/callout.css";
+@import "./components/code.css";
+@import "./components/table.css";
+@import "./components/toc.css";
+@import "./pages/site-index.css";
+@import "./pages/diagnostics.css";
+@import "./utilities.css";
+@import "./print.css";

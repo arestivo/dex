@@ -1,0 +1,30 @@
+/* Dev-server error page. */
+@layer components {
+  .diagnostics {
+    max-width: 64rem;
+    margin-inline: auto;
+    padding: 3rem 1.25rem;
+    display: grid;
+    gap: 1rem;
+  }
+
+  .diagnostics__list {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .diagnostics__item {
+    padding: 0.6rem 0.9rem;
+    border-inline-start: 4px solid var(--tone-error);
+    background: var(--tone-error-bg);
+    border-radius: 0.25rem;
+    white-space: pre-wrap;
+  }
+
+  .diagnostics__item--warning {
+    border-color: var(--tone-warning);
+    background: var(--tone-warning-bg);
+  }
+}

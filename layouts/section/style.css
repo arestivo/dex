@@ -1,0 +1,27 @@
+:scope {
+  align-content: center;
+  background: var(--color-inverse-bg);
+  color: var(--color-inverse-text);
+  --color-link: var(--color-inverse-link);
+}
+
+.divider {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+  text-align: center;
+}
+
+h1,
+h2 {
+  font-size: 2.6em;
+  letter-spacing: -0.01em;
+}
+
+.divider__body {
+  text-align: start;
+}
+
+.divider__body:empty {
+  display: none;
+}

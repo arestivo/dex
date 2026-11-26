@@ -1,0 +1,58 @@
+{
+  "name": "dex",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dex: a Markdown slide engine with stable, deep-linkable slides.",
+  "type": "module",
+  "bin": {
+    "dex": "src/cli/main.ts"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node src/cli/main.ts dev",
+    "build": "node src/cli/main.ts build",
+    "preview": "node src/cli/main.ts preview",
+    "check:decks": "node src/cli/main.ts check",
+    "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.client.json",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run --project unit",
+    "test:watch": "vitest --project unit",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && node src/cli/main.ts check --folder tests/fixtures/viewer && node src/cli/main.ts build --folder tests/fixtures/viewer --dist node_modules/.cache/verify-site",
+    "check:fit": "node src/cli/main.ts fit",
+    "test:e2e": "vitest run --project e2e"
+  },
+  "dependencies": {
+    "github-slugger": "^2.0.0",
+    "hast-util-from-html": "^2.1.0",
+    "hast-util-raw": "^9.2.1",
+    "hast-util-to-html": "^9.0.7",
+    "hast-util-to-string": "^3.0.1",
+    "hastscript": "^9.0.3",
+    "mdast-util-directive": "^3.2.1",
+    "mdast-util-to-hast": "^13.2.2",
+    "mdast-util-to-string": "^4.0.0",
+    "remark-directive": "^4.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "shiki": "^4.6.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.2.0",
+    "vfile": "^6.0.3",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.9",
+    "@types/hast": "^3.0.5",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^26.6.10",
+    "@types/unist": "^3.0.3",
+    "happy-dom": "^21.0.4",
+    "playwright-core": "^1.65.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  }
+}

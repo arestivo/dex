@@ -1,0 +1,86 @@
+/*
+ * Design tokens. Colours use light-dark(), resolved by `color-scheme`:
+ * the OS preference by default, or the viewer's override via
+ * <html data-theme="light|dark">.
+ *
+ * Spacing inside slides is in `em`, so it scales with the slide.
+ */
+@layer tokens {
+  :root {
+    color-scheme: light dark;
+
+    /* Typography */
+    --font-sans:
+      "Inter", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", sans-serif;
+    --font-mono:
+      "JetBrains Mono", "Fira Code", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+    --line-height: 1.45;
+
+    /* Palette */
+    --color-bg: light-dark(#ffffff, #12141a);
+    --color-page: light-dark(#eef0f4, #0a0b0f);
+    --color-surface: light-dark(#f4f6f9, #1b1f27);
+    --color-text: light-dark(#1b2130, #e4e7ee);
+    --color-muted: light-dark(#5a6376, #9ba4b6);
+    --color-border: light-dark(#d9dde5, #2c323d);
+    --color-accent: light-dark(#1d5fd6, #7ea9ff);
+    --color-link: var(--color-accent);
+    --color-highlight: light-dark(#fff3b0, #4a3f00);
+
+    /* Inverse surfaces (title and section slides) */
+    --color-inverse-bg: light-dark(#18233a, #1d2a45);
+    --color-inverse-text: #f3f5fa;
+    --color-inverse-muted: #b8c2d8;
+    --color-inverse-link: #a9c5ff;
+
+    /* Callout tones: [foreground, background] */
+    --tone-info: light-dark(#1d5fd6, #7ea9ff);
+    --tone-info-bg: light-dark(#eaf1fe, #17233b);
+    --tone-warning: light-dark(#9a5b00, #f2b84b);
+    --tone-warning-bg: light-dark(#fff5e0, #2e2412);
+    --tone-error: light-dark(#b42318, #ff8a80);
+    --tone-error-bg: light-dark(#fdecea, #331a19);
+    --tone-success: light-dark(#18794e, #6fd6a3);
+    --tone-success-bg: light-dark(#e7f6ee, #14291f);
+    --tone-example: light-dark(#6b3fc4, #c3a6ff);
+    --tone-example-bg: light-dark(#f2ecfd, #241b38);
+
+    /* Code (Shiki emits --shiki-light / --shiki-dark per token) */
+    --code-bg: light-dark(#f6f8fa, #0d1117);
+    --code-inline-bg: light-dark(#eef1f5, #232833);
+
+    /* Slide geometry */
+    --slide-ratio-w: 16;
+    --slide-ratio-h: 9;
+    /* Font size = slide height / this. Bigger number = smaller text. */
+    --slide-lines: 26;
+    --slide-padding-block: 1.6em;
+    --slide-padding-inline: 2.4em;
+
+    /* Spacing scale (em: scales with the slide) */
+    --space-1: 0.25em;
+    --space-2: 0.5em;
+    --space-3: 0.85em;
+    --space-4: 1.4em;
+    --space-5: 2.2em;
+
+    --radius-1: 0.25em;
+    --radius-2: 0.5em;
+
+    /* Viewer chrome (rem: does not scale with the slide) */
+    --chrome-bg: light-dark(rgb(255 255 255 / 0.88), rgb(24 27 35 / 0.88));
+    --chrome-text: var(--color-text);
+    --chrome-radius: 999px;
+    --chrome-shadow: 0 2px 12px rgb(0 0 0 / 0.18);
+    --duration-fast: 150ms;
+    --duration-slow: 400ms;
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+}

@@ -1,0 +1,12 @@
+<!--
+  two-columns: a title, an optional intro, and two side-by-side columns.
+  Slots: title, (default), left, right
+-->
+<header class="slide__header"><slot name="title"></slot></header>
+<div class="slide__body">
+  <slot></slot>
+  <div class="pair">
+    <div class="pair__column"><slot name="left"></slot></div>
+    <div class="pair__column"><slot name="right"></slot></div>
+  </div>
+</div>
