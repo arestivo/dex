@@ -21,10 +21,11 @@ Current phase: the engine and the remark → new-format migration path. Existing
 <content folder>/          the current folder, or --folder <dir>
   decks/<slug>/slides.md   deck sources
   decks/<slug>/assets/     their images and files
+  layouts/<name>/          optional local layouts
   dist/                    the built site (or --dist <dir>)
 ```
 
-Layouts, styles and the viewer belong to the engine and are found next to its code, wherever the command runs.
+Built-in layouts, styles and the viewer belong to the engine and are found next to its code, wherever the command runs. A content folder may add **local layouts** in its `layouts/<name>/` (same format; `dex new layout <name>` scaffolds one). They can't reuse built-in names, and the engine loads them after the built-in ones (`loadLayoutSet`).
 
 `dex init` prepares a content folder for the agents that work *there*. It writes a Dex-managed block (between `<!-- dex:start -->`/`<!-- dex:end -->`) into its `AGENTS.md`, makes `CLAUDE.md` import it, and installs the content skills. Those are rendered from this repository's `scaffold/`: edit `scaffold/AGENTS.block.md` and `scaffold/skills/<name>/`, never the copies in content folders. A new skill folder in `scaffold/skills/` is picked up automatically. Agents in content folders read the deck format with `dex docs`, which prints this repository's `docs/`, so those docs must make sense when read from a content folder. `dex init` refuses to run at this repository's root. For local testing, the repository root can act as a content folder: `decks/` and `dist/` there are git-ignored. Automated tests must only use committed fixtures (`tests/fixtures/`), never real decks.
 
@@ -35,7 +36,7 @@ Behaviour is specified in `openspec/specs/<capability>/spec.md`:
 | Capability | Covers |
 | --- | --- |
 | `deck-format` | the deck source format (front matter, slides, ids, directives, assets) |
-| `slide-layouts` | layout folders, templates, slots, variables, scoped CSS |
+| `slide-layouts` | built-in and local layout folders, templates, slots, variables, scoped CSS, `layout.md`, `dex new layout` |
 | `deck-viewer` | browser behaviour: navigation, deep links, themes, a11y, no-JS, print |
 | `deck-build` | the `dex` command, content/output folders, output layout, diagnostics |
 
@@ -50,7 +51,7 @@ Pure refactors, tooling and docs changes don't need a proposal. If code and spec
 ## Repository map
 
 ```text
-layouts/<name>/            one folder per layout: template.html (+ style.css)
+layouts/<name>/            built-in layouts: template.html (+ style.css) + layout.md (description, usage notes, example)
 src/core/                  build-time engine: pure TypeScript, no Vite
   config.ts                  engine paths; content folder / --folder / --dist
   parse/                     front matter, slide splitting, slide declarations
@@ -62,11 +63,11 @@ src/core/                  build-time engine: pure TypeScript, no Vite
 src/build/vite-plugin.ts   Vite plugin: dev middleware, build emission, layouts CSS
 src/build/site.ts          dev server / build / preview for a content folder
 src/client/                browser viewer (framework-free TS modules)
-src/cli/                   main.ts (the `dex` command), init.ts + scaffold.ts, docs.ts, check.ts, fit.ts, browser.ts
+src/cli/                   main.ts (the `dex` command), init.ts + scaffold.ts, new.ts, docs.ts, check.ts, fit.ts, browser.ts
 src/shared/                constants used by both Node and browser code
 styles/                    global CSS (see "CSS" below)
-docs/                      authoring.md (the format), layouts.md: also printed by `dex docs`
-scaffold/                  what `dex init` writes into content folders: AGENTS.block.md, skills/
+docs/                      authoring.md (the format), layouts.md (making layouts): printed by `dex docs`
+scaffold/                  what `dex init` writes into content folders (AGENTS.block.md, skills/), and layout/ for `dex new layout`
 tests/core, tests/client   unit tests (Vitest; client tests use happy-dom)
 tests/e2e                  browser tests against the built site
 tests/fixtures             committed content folders for tests (viewer/ feeds the e2e suite)

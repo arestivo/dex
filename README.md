@@ -12,6 +12,7 @@ talks/                   ← run the commands here (or pass --folder talks)
     http/
       slides.md
       assets/
+  layouts/               ← optional local layouts (dex new layout <name>)
   dist/                  ← the built site (or --dist <dir>)
 ```
 
@@ -27,13 +28,14 @@ alias dex="node $PWD/src/cli/main.ts"
 
 ```sh
 mkdir ~/talks && cd ~/talks
-dex init         # decks/, .gitignore, AGENTS.md + skills for AI agents
-dex dev          # http://localhost:5173/  →  /http/
-dex check        # validate every deck (or: dex check http)
-dex fit          # find slides whose content doesn't fit (needs Chromium)
-dex build        # static site in ./dist (or --dist ~/www/slides)
-dex preview      # serve the built site like a static host
-dex docs         # the deck format reference (dex docs layouts: the layouts)
+dex init              # decks/, .gitignore, AGENTS.md + skills for AI agents
+dex dev               # http://localhost:5173/  →  /http/
+dex check             # validate every deck (or: dex check http)
+dex fit               # find slides whose content doesn't fit (needs Chromium)
+dex build             # static site in ./dist (or --dist ~/www/slides)
+dex preview           # serve the built site like a static host
+dex docs              # the deck format reference (dex docs layouts: the layouts)
+dex new layout quote  # a local layout in ./layouts/quote/
 ```
 
 Re-run `dex init` after upgrading Dex: it refreshes only the Dex-managed block in `AGENTS.md` and the Dex skills, and keeps your own notes.
@@ -41,7 +43,7 @@ Re-run `dex init` after upgrading Dex: it refreshes only the Dex-managed block i
 Inside this repository, `pnpm dev`, `pnpm check:decks`, `pnpm build`… do the same with the repository as the content folder. Its `decks/` and `dist/` are git-ignored, for local testing only.
 
 - Writing decks: [docs/authoring.md](docs/authoring.md) (also `dex docs`)
-- Layouts: [docs/layouts.md](docs/layouts.md) (also `dex docs layouts`)
+- Layouts: built-in ones in [layouts/](layouts/), each with a `layout.md`; local ones in a content folder's `layouts/`. Guide: [docs/layouts.md](docs/layouts.md) (`dex docs layouts` adds the list for a folder)
 - Agent skills installed by `dex init`: [scaffold/skills/](scaffold/skills/) (`author-deck`, `migrate-remark-deck`)
 - Working on the engine (structure, commands, conventions, specs): [AGENTS.md](AGENTS.md)
 

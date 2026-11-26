@@ -63,6 +63,16 @@ A paragraph with a [link to the details](#details).
 
 ---
 
+::slide{#motto layout=quote}
+
+Simplicity is prerequisite for reliability.
+
+::slot{name=source}
+
+Edsger W. Dijkstra
+
+---
+
 ::slide{#last layout=center}
 
 # The end

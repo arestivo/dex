@@ -63,5 +63,5 @@ Ask only if the source is missing or ambiguous.
 - **Ids are permanent**: once chosen and published they key deep links and discussions. Choose them carefully, and don't rename existing ones in later edits.
 - **Every image gets alt text** describing what it shows.
 - **16:9**: remark decks were 4:3, so expect some slides to need splitting or two columns.
-- **No new CSS for one slide.** Prefer layouts, utilities and splitting. If a pattern recurs across decks, suggest a new layout to the author. Layouts belong to the Dex engine (see `dex docs layouts`).
+- **No new CSS for one slide.** Prefer layouts, utilities and splitting. If a pattern recurs across slides, create a local layout for it (see the `author-layout` skill) and mention it in your report.
 - **Don't run code formatters over decks or assets.** Markdown formatters can rewrite the YAML front matter and break the deck, and some (Biome 2.6) exhaust all memory on draw.io SVG exports.

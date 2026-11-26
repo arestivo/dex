@@ -117,6 +117,31 @@ describe('presentation mode', () => {
   })
 })
 
+describe('local layouts', () => {
+  it('renders a slide with a local layout and its scoped style', async () => {
+    const page = await open('#motto')
+    expect(await current(page)).toBe('motto')
+    expect(await page.locator('#motto figure.quote .quote__source').textContent()).toContain(
+      'Dijkstra',
+    )
+    const style = (selector: string) =>
+      page.evaluate(
+        (s) => getComputedStyle(document.querySelector(s) as Element).fontStyle,
+        selector,
+      )
+    expect(await style('#motto .quote__text')).toBe('italic')
+    // Scoped: the same class outside a quote slide is not styled.
+    await page.evaluate(() => {
+      const probe = Object.assign(document.createElement('p'), {
+        className: 'quote__text',
+        id: 'probe',
+      })
+      document.querySelector('#first .slide__body')?.append(probe)
+    })
+    expect(await style('#probe')).toBe('normal')
+  })
+})
+
 describe('theme', () => {
   it('toggles with d and persists the override', async () => {
     const page = await open('#first')
@@ -143,7 +168,7 @@ describe('without JavaScript', () => {
       '.slide',
       (all) => all.filter((slide) => getComputedStyle(slide).display !== 'none').length,
     )
-    expect(slides).toBe(9)
+    expect(slides).toBe(10)
     const top = await page.evaluate(
       () => document.getElementById('details')?.getBoundingClientRect().top ?? -1,
     )

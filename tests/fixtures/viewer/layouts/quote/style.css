@@ -1,0 +1,8 @@
+:scope {
+  align-content: center;
+}
+
+.quote__text {
+  font-size: 1.6em;
+  font-style: italic;
+}

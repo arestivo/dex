@@ -1,36 +1,32 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { builtInLayouts, PROJECT_ROOT } from '../helpers.ts'
+import { builtInLayouts, compile } from '../helpers.ts'
 
-/** Rows of the "Available layouts" table in docs/layouts.md: name → slots. */
-function documentedLayouts(): Map<string, string[]> {
-  const doc = readFileSync(join(PROJECT_ROOT, 'docs/layouts.md'), 'utf8')
-  const section = doc.split('## Available layouts')[1]?.split('\n## ')[0] ?? ''
-  const rows = section.split('\n').filter((line) => /^\| `/.test(line))
-  return new Map(
-    rows.map((row) => {
-      const [name = '', , slots = ''] = row
-        .split('|')
-        .slice(1)
-        .map((cell) => cell.trim())
-      return [
-        name.replaceAll('`', ''),
-        slots
-          .split(',')
-          .map((slot) => slot.trim().replaceAll('`', ''))
-          .map((slot) => (slot === 'default' ? '' : slot)),
-      ]
-    }),
-  )
+/** The fenced example under "## Example" in a layout's notes. */
+function example(notes: string): string | undefined {
+  const section = notes.split('## Example')[1] ?? ''
+  const open = /^(`{3,})markdown\s*$/m.exec(section)
+  if (!open?.[1]) return undefined
+  const rest = section.slice((open.index ?? 0) + open[0].length + 1)
+  const close = new RegExp(`^${open[1]}\\s*$`, 'm').exec(rest)
+  return close ? rest.slice(0, close.index) : undefined
 }
 
-describe('docs/layouts.md', () => {
-  it('lists exactly the built-in layouts with their real slots', () => {
-    const documented = documentedLayouts()
-    expect([...documented.keys()].sort()).toEqual([...builtInLayouts.keys()].sort())
-    for (const [name, layout] of builtInLayouts) {
-      expect(new Set(documented.get(name)), `slots of ${name}`).toEqual(new Set(layout.slots))
-    }
-  })
+describe('built-in layout notes (layout.md)', () => {
+  for (const [name, layout] of builtInLayouts) {
+    describe(name, () => {
+      it('has a description and usage notes', () => {
+        expect(layout.description).not.toBe('')
+        expect(layout.notes).toMatch(/## When to use/)
+      })
+
+      it('has an example that compiles without errors', async () => {
+        const source = example(layout.notes ?? '')
+        expect(source, 'an ```markdown example under ## Example').toBeDefined()
+        const { diagnostics } = await compile(source ?? '')
+        expect(diagnostics.items.filter((d) => d.severity === 'error')).toEqual([])
+        // The default layout is used when no layout= is given.
+        if (name !== 'default') expect(source).toContain(`layout=${name}`)
+      })
+    })
+  }
 })

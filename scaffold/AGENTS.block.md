@@ -4,11 +4,12 @@
 
 This folder holds slide decks built with **Dex**. Dex is the engine, installed separately. This folder is only content.
 
-### Layout
+### Folder structure
 
 ```text
 decks/<slug>/slides.md     one deck per folder; the slug is its URL (/<slug>/)
 decks/<slug>/assets/       images and files that deck uses
+layouts/<name>/            local layouts for these decks (template.html, style.css, layout.md)
 dist/                      the built site: generated, never edit it by hand
 ```
 
@@ -17,7 +18,7 @@ dist/                      the built site: generated, never edit it by hand
 Don't guess the syntax: read the reference that matches the installed engine.
 
 - `dex docs` is the complete deck format (front matter, slides, directives, utility classes, making content fit).
-- `dex docs layouts` lists the available layouts and their slots.
+- `dex docs layouts` lists the layouts available here (built-in and local): what each is for, its slots, an example, and how to make a new one.
 
 ### Rules
 
@@ -25,6 +26,7 @@ Don't guess the syntax: read the reference that matches the installed engine.
 - Choose short, descriptive ids when creating slides (`cors-preflight`, not `slide-12`).
 - Keep each deck's files inside its own folder. Reference assets relatively (`assets/x.svg`) and give every image alt text.
 - Don't add CSS or HTML styling to fix one slide. Use layouts, utility classes, or split the slide.
+- When the same slide arrangement keeps recurring, create a local layout (`dex new layout <name>`) and document it in its `layout.md`. Local layouts can't reuse built-in names.
 
 ### Commands
 
@@ -34,6 +36,7 @@ dex fit [slug...]     # find slides whose content doesn't fit (headless browser)
 dex dev               # live preview at http://localhost:5173/
 dex build             # build the site into dist/
 dex docs [topic]      # the reference (see above)
+dex new layout <name> # create a local layout in layouts/<name>/
 dex init              # refresh these instructions and the skills after a Dex upgrade
 ```
 

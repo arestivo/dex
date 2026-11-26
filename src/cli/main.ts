@@ -10,11 +10,13 @@ import { runCheck } from './check.ts'
 import { runDocs } from './docs.ts'
 import { runFit } from './fit.ts'
 import { runInit } from './init.ts'
+import { runNew } from './new.ts'
 
 const USAGE = `Usage: dex <command> [options] [args...]
 
 Commands:
   init              prepare this folder for decks and agents (safe to re-run)
+  new layout <name> create a local layout in layouts/<name>/
   dev               serve the decks with live reload
   build             build the static site
   preview           serve the built site like a static host
@@ -73,12 +75,14 @@ async function main(argv: readonly string[]): Promise<number> {
     }
     case 'init':
       return runInit(content)
+    case 'new':
+      return runNew(content, args[0], args[1])
     case 'check':
       return runCheck(content, args)
     case 'fit':
       return runFit(content, args)
     case 'docs':
-      return runDocs(args[0], values.list === true)
+      return runDocs(content, args[0], values.list === true)
     default:
       console.error(`Unknown command "${command}".\n\n${USAGE}`)
       return 1

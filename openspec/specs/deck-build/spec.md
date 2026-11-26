@@ -59,11 +59,15 @@ The build SHALL copy into the output only the deck assets that slides reference,
 
 ### Requirement: Development server
 
-`pnpm dev` SHALL serve the index and all decks locally. When a deck source, a layout template or a stylesheet changes, open pages SHALL update without a manual reload. Style changes SHALL apply without reloading the page. Diagnostics SHALL appear in the terminal and, for errors, in the browser in place of the deck.
+`dex dev` SHALL serve the index and all decks locally. When a deck source, a layout template or a layout stylesheet changes (built-in or local), or a local layout is added or removed, open pages SHALL update without a manual reload. Stylesheet changes SHALL apply without reloading the page. Diagnostics SHALL appear in the terminal and, for errors, in the browser in place of the deck.
 
 #### Scenario: Edit a slide
 - **WHEN** the dev server is running on `/http/#urn` and the author edits that slide's text
 - **THEN** the page reloads on slide `urn` showing the new text
+
+#### Scenario: Edit a local layout's style
+- **WHEN** the dev server is running and the author edits `layouts/quote/style.css` in the content folder
+- **THEN** slides using `quote` show the new style without the page reloading
 
 #### Scenario: Error while editing
 - **WHEN** the author saves a deck with an unknown directive
@@ -83,11 +87,11 @@ The build SHALL copy into the output only the deck assets that slides reference,
 
 ### Requirement: The dex command
 
-The engine SHALL provide one command, `dex <init|dev|build|preview|check|fit|docs> [options] [args...]`. It SHALL print usage with `--help`, and print usage and exit non-zero for a missing or unknown command. Inside the engine repository, the `pnpm` scripts (`dev`, `build`, `preview`, `check:decks`, `check:fit`) SHALL run the corresponding commands.
+The engine SHALL provide one command, `dex <init|new|dev|build|preview|check|fit|docs> [options] [args...]`. It SHALL print usage with `--help`, and print usage and exit non-zero for a missing or unknown command. Inside the engine repository, the `pnpm` scripts (`dev`, `build`, `preview`, `check:decks`, `check:fit`) SHALL run the corresponding commands.
 
 #### Scenario: Help
 - **WHEN** the user runs `dex --help`
-- **THEN** the commands (including `init` and `docs`) and options are listed and the exit status is 0
+- **THEN** the commands (including `init`, `new` and `docs`) and options are listed and the exit status is 0
 
 #### Scenario: Unknown command
 - **WHEN** the user runs `dex frobnicate`
@@ -95,11 +99,11 @@ The engine SHALL provide one command, `dex <init|dev|build|preview|check|fit|doc
 
 ### Requirement: Content folder
 
-Every command SHALL work on a content folder: the working directory by default, or the folder given by `--folder <dir>`. Decks SHALL be read from its `decks/` folder. Diagnostic paths SHALL be relative to the content folder. Layouts, styles and the viewer SHALL come from the engine, whatever the content folder.
+Every command SHALL work on a content folder: the working directory by default, or the folder given by `--folder <dir>`. Decks SHALL be read from its `decks/` folder and local layouts from its `layouts/` folder. Diagnostic paths SHALL be relative to the content folder. Built-in layouts, global styles and the viewer SHALL come from the engine, whatever the content folder.
 
 #### Scenario: Run inside a content folder
 - **WHEN** the user runs `dex build` in `~/talks`, which contains `decks/http/slides.md`
-- **THEN** the `http` deck is built with the engine's layouts
+- **THEN** the `http` deck is built with the engine's layouts and any local layouts in `~/talks/layouts`
 
 #### Scenario: Select a content folder
 - **WHEN** the user runs `dex check --folder ~/talks` from another folder

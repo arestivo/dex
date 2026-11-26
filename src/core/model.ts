@@ -24,10 +24,18 @@ export interface DeckMeta {
 }
 
 /** A layout loaded from `layouts/<name>/`. */
+/** Where a layout comes from: the engine, or the content folder's `layouts/`. */
+export type LayoutOrigin = 'built-in' | 'local'
+
 export interface Layout {
   readonly name: string
-  /** Template file, relative to the project root (for diagnostics). */
+  readonly origin: LayoutOrigin
+  /** Template file, relative to the content folder (for diagnostics). */
   readonly file: string
+  /** One line from `layout.md`'s front matter; `''` when missing. */
+  readonly description: string
+  /** Body of `layout.md` (usage notes); `undefined` when there is no `layout.md`. */
+  readonly notes: string | undefined
   /** Parsed template children. Must be cloned before being filled. */
   readonly template: readonly ElementContent[]
   /** Slot names the template declares; `''` is the default slot. */

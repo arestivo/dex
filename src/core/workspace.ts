@@ -5,9 +5,9 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve, sep } from 'node:path'
 import { type CompileResult, compileDeck } from './compile.ts'
-import { DECKS_FOLDER, LAYOUTS_DIR } from './config.ts'
+import { DECKS_FOLDER, LAYOUTS_DIR, LAYOUTS_FOLDER } from './config.ts'
 import { type Diagnostic, DiagnosticBag } from './diagnostics.ts'
-import { loadLayouts } from './layouts/load.ts'
+import { type LayoutSet, loadLayoutSet } from './layouts/load.ts'
 import { type CompiledDeck, IDENTIFIER_PATTERN, type Layout } from './model.ts'
 
 export const DECK_FILE = 'slides.md'
@@ -17,8 +17,10 @@ export interface WorkspaceOptions {
   readonly root: string
   /** Decks folder, absolute or relative to `root` (default `<root>/decks`). */
   readonly decksDir?: string
-  /** Layouts folder, absolute or relative to `root` (default: the engine's layouts). */
+  /** Built-in layouts folder, absolute or relative to `root` (default: the engine's layouts). */
   readonly layoutsDir?: string
+  /** Local layouts folder, absolute or relative to `root` (default `<root>/layouts`). */
+  readonly localLayoutsDir?: string
 }
 
 /** Workspace options with every path absolute. */
@@ -44,7 +46,17 @@ export function resolveOptions(options: WorkspaceOptions): ResolvedWorkspace {
     root,
     decksDir: resolve(root, options.decksDir ?? DECKS_FOLDER),
     layoutsDir: resolve(root, options.layoutsDir ?? LAYOUTS_DIR),
+    localLayoutsDir: resolve(root, options.localLayoutsDir ?? LAYOUTS_FOLDER),
   }
+}
+
+/** Loads the built-in layouts and the content folder's local layouts. */
+export function loadWorkspaceLayouts(options: WorkspaceOptions): LayoutSet {
+  const resolved = resolveOptions(options)
+  return loadLayoutSet(resolved.root, [
+    { dir: resolved.layoutsDir, origin: 'built-in' },
+    { dir: resolved.localLayoutsDir, origin: 'local' },
+  ])
 }
 
 /** Lists deck folders (those containing `slides.md`), sorted by slug. */
@@ -94,10 +106,7 @@ export async function compileWorkspace(
 ): Promise<WorkspaceResult> {
   const resolved = resolveOptions(options)
   const bag = new DiagnosticBag()
-  const { layouts, diagnostics: layoutDiagnostics } = loadLayouts(
-    resolved.root,
-    resolved.layoutsDir,
-  )
+  const { layouts, diagnostics: layoutDiagnostics } = loadWorkspaceLayouts(resolved)
   bag.push(...layoutDiagnostics.items)
 
   if (!existsSync(resolved.decksDir)) {

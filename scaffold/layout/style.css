@@ -1,0 +1,21 @@
+/*
+ * Styles for slides using the "{{name}}" layout. Dex wraps this file in
+ * @scope, so selectors only match inside those slides, and :scope is the
+ * slide itself. Size things in em (they scale with the slide) and use the
+ * design tokens, so both themes work. See `dex docs layouts`.
+ */
+
+:scope {
+  grid-template-rows: auto 1fr;
+}
+
+/*
+:scope {
+  background: var(--color-surface);
+}
+
+.{{name}} {
+  display: grid;
+  gap: var(--space-3);
+}
+*/

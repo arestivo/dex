@@ -119,7 +119,7 @@ Both send requests, but:
 ::slide{#title layout=title}
 ```
 
-Layouts belong to the Dex engine, not to content folders: a new layout is a change to the engine (see `dex docs layouts`).
+Besides the built-in layouts, a content folder can define its own in `layouts/<name>/`: `dex new layout <name>` creates one, and `dex docs layouts` explains how they work.
 
 ## Content
 

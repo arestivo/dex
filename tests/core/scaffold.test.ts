@@ -95,6 +95,8 @@ describe('planScaffold', () => {
       '.gitignore': 'create',
       '.agents/skills/author-deck/': 'create',
       '.claude/skills/author-deck': 'create',
+      '.agents/skills/author-layout/': 'create',
+      '.claude/skills/author-layout': 'create',
       '.agents/skills/migrate-remark-deck/': 'create',
       '.claude/skills/migrate-remark-deck': 'create',
     })
@@ -103,6 +105,10 @@ describe('planScaffold', () => {
     expect(existsSync(join(root, 'decks'))).toBe(true)
     expect(read('AGENTS.md')).toContain('dex docs')
     expect(read('AGENTS.md')).toContain('- `author-deck`:')
+    expect(read('AGENTS.md')).toContain('- `author-layout`:')
+    expect(read('AGENTS.md')).toContain('layouts/<name>/')
+    expect(read('AGENTS.md')).toContain('dex new layout <name>')
+    expect(read('AGENTS.md')).toContain('dex docs layouts')
     expect(read('CLAUDE.md')).toBe('@AGENTS.md\n')
     expect(read('.gitignore')).toBe('/dist/\n')
     expect(read('.agents/skills/author-deck/SKILL.md')).toContain('generatedBy: dex')

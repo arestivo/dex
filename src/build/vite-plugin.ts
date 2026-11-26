@@ -11,7 +11,7 @@
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import type { ServerResponse } from 'node:http'
-import { extname, join, relative, resolve, sep } from 'node:path'
+import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import type { Plugin, ResolvedConfig, ViteDevServer } from 'vite'
 import { CLIENT_ENTRY, type ContentLocations, ENGINE_ROOT, LAYOUTS_DIR } from '../core/config.ts'
 import {
@@ -21,7 +21,7 @@ import {
   hasErrors,
   sortDiagnostics,
 } from '../core/diagnostics.ts'
-import { layoutsCss, loadLayouts, STYLE_FILE } from '../core/layouts/load.ts'
+import { layoutsCss, STYLE_FILE } from '../core/layouts/load.ts'
 import { IDENTIFIER_PATTERN } from '../core/model.ts'
 import type { PageAssets } from '../core/render/html.ts'
 import { renderDeckPage, renderErrorPage, renderIndexPage } from '../core/render/pages.ts'
@@ -29,6 +29,7 @@ import {
   compileDeckAt,
   compileWorkspace,
   findDecks,
+  loadWorkspaceLayouts,
   type ResolvedWorkspace,
   resolveOptions,
   type WorkspaceResult,
@@ -114,30 +115,33 @@ export function dex(options: DexPluginOptions): Plugin {
 
     load(id) {
       if (id !== RESOLVED_CSS) return undefined
-      const { layouts, diagnostics } = loadLayouts(workspace.root, workspace.layoutsDir)
+      const { layouts, diagnostics } = loadWorkspaceLayouts(workspace)
       report(diagnostics.items)
       for (const layout of layouts.values()) {
-        this.addWatchFile(join(workspace.layoutsDir, layout.name, STYLE_FILE))
+        this.addWatchFile(join(dirname(resolve(workspace.root, layout.file)), STYLE_FILE))
       }
       return layoutsCss(layouts)
     },
 
     hotUpdate({ file }) {
-      const inLayouts = isInside(workspace.layoutsDir, file)
+      const inLayouts =
+        isInside(workspace.layoutsDir, file) || isInside(workspace.localLayoutsDir, file)
       const inDecks = isInside(workspace.decksDir, file)
       if (!inLayouts && !inDecks) return undefined
 
-      if (inLayouts && file.endsWith(STYLE_FILE)) {
-        const css = this.environment.moduleGraph.getModuleById(RESOLVED_CSS)
-        return css ? [css] : []
-      }
+      const css = this.environment.moduleGraph.getModuleById(RESOLVED_CSS)
+      if (inLayouts && file.endsWith(STYLE_FILE)) return css ? [css] : []
+      // Templates, layout.md and added/removed layout folders can change the
+      // set of layouts, so the generated CSS must be rebuilt on reload too.
+      if (inLayouts && css) this.environment.moduleGraph.invalidateModule(css)
       this.environment.hot.send({ type: 'full-reload' })
       return []
     },
 
     configureServer(server) {
-      // Decks usually live outside the engine root, which Vite watches by default.
-      server.watcher.add(workspace.decksDir)
+      // Decks and local layouts usually live outside the engine root, which is
+      // all Vite watches by default.
+      server.watcher.add([workspace.decksDir, workspace.localLayoutsDir])
       return () => {
         server.middlewares.use((req, res, next) => {
           handleDevRequest(server, req.url ?? '/', res).then(
@@ -247,10 +251,7 @@ export function dex(options: DexPluginOptions): Plugin {
     }
 
     if (rest.join('/') === '' || rest.join('/') === 'index.html') {
-      const { layouts, diagnostics: layoutDiagnostics } = loadLayouts(
-        workspace.root,
-        workspace.layoutsDir,
-      )
+      const { layouts, diagnostics: layoutDiagnostics } = loadWorkspaceLayouts(workspace)
       const { deck, diagnostics } = await compileDeckAt(location, layouts)
       const all = [...layoutDiagnostics.items, ...diagnostics.items]
       report(all)

@@ -3,14 +3,16 @@ import type { Element } from 'hast'
 import { toHtml } from 'hast-util-to-html'
 import { type CompileResult, compileDeck } from '../src/core/compile.ts'
 import { formatDiagnostic } from '../src/core/diagnostics.ts'
-import { loadLayouts } from '../src/core/layouts/load.ts'
+import { loadLayoutSet } from '../src/core/layouts/load.ts'
 import type { CompiledDeck, Layout } from '../src/core/model.ts'
 
 export const PROJECT_ROOT = fileURLToPath(new URL('..', import.meta.url))
 export const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url))
 
 /** The real built-in layouts. */
-export const builtInLayouts = loadLayouts(PROJECT_ROOT, 'layouts').layouts
+export const builtInLayouts = loadLayoutSet(PROJECT_ROOT, [
+  { dir: 'layouts', origin: 'built-in' },
+]).layouts
 
 export const FRONT_MATTER = '---\ntitle: Test deck\n---\n\n'
 

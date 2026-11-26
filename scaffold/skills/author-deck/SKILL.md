@@ -29,7 +29,8 @@ Every slide starts with `::slide{#id ...}`. Ids are permanent once published: th
 - One idea per slide. Split rather than shrink.
 - Prefer Markdown and the documented directives over raw HTML.
 - Put images in `decks/<slug>/assets/`, reference them as `assets/<file>` and give them alt text.
-- Use the layouts and utility classes from `dex docs`. Don't invent CSS classes or inline styles to fix a single slide.
+- Use the layouts (`dex docs layouts`) and utility classes (`dex docs`). Don't invent CSS classes or inline styles to fix a single slide.
+- If the same arrangement keeps recurring and no layout fits, create a local layout instead (see the `author-layout` skill).
 
 ## 5. Validate until clean
 

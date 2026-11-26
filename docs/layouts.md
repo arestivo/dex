@@ -1,31 +1,27 @@
-# Layouts
+# Making layouts
 
-A layout decides where a slide's content goes. Each slide picks one with `::slide{#id layout=<name>}`; without `layout=` it uses `default`. How to fill slots is in `dex docs` (section "Layouts and slots").
+A layout decides where a slide's content goes and how it looks. It is a folder with an HTML template, an optional stylesheet and usage notes, and adding one needs no code. To see the layouts you can already use, run `dex docs layouts`.
 
-## Available layouts
+Layouts live in two places:
 
-| Layout | Use for | Slots |
-| --- | --- | --- |
-| `default` | most slides: a title bar and a body | `title`, default |
-| `title` | the deck's first slide | `title`, `subtitle`, default, `footer` |
-| `section` | chapter dividers, listed by `::toc` | `title`, default |
-| `center` | a single centred diagram, quote or statement | `title`, default |
-| `two-columns` | side-by-side content | `title`, default, `left`, `right` |
+- **Local layouts**: `layouts/<name>/` in a content folder, next to `decks/`. They are available to every deck in that folder. This is the usual way to add a layout.
+- **Built-in layouts**: `layouts/<name>/` in the Dex engine, available in every content folder. Adding or changing one is a change to the engine.
 
-## Making a layout
+A local layout cannot reuse a built-in layout's name (`dex check` reports it). Pick a new name instead.
 
-Layouts belong to the **Dex engine**, not to content folders: everything below is done in the engine repository, and every content folder gets the new layout. A layout is a folder in the engine's `layouts/`. Adding one needs no code: create the folder and use it with `::slide{#id layout=<folder-name>}`.
+The quickest start is `dex new layout <name>`, which creates a working local layout to edit:
 
 ```text
 layouts/
   quote/
     template.html   ← required: where the slide's content goes
     style.css       ← optional: styles for slides using this layout
+    layout.md       ← recommended: what it is for and how to use it
 ```
 
-The folder name is the layout name and must match `^[a-z][a-z0-9-]*$`. The `default` layout must exist.
+The folder name is the layout name and must match `^[a-z][a-z0-9-]*$`. Slides use it with `::slide{#id layout=<folder-name>}`.
 
-### template.html
+## template.html
 
 An HTML fragment (no `<html>`/`<body>`) that becomes the inside of the slide's `<section class="slide" data-layout="quote">`. Mark where content goes with `<slot>` elements:
 
@@ -64,7 +60,7 @@ Missing optional values are empty, and unknown variables are errors. Variables a
 - `div.slide__body` holds the main content and scrolls if it overflows;
 - name layout-specific elements BEM-style (`.quote__source`). Blocks with `__` in their class don't get the automatic spacing that content blocks get.
 
-### style.css
+## style.css
 
 Plain CSS, automatically wrapped so it only applies to slides using this layout:
 
@@ -98,11 +94,39 @@ So in `style.css`:
 - `@import` and `@layer` are not allowed: the wrapper adds the layer;
 - layout styles beat component styles (callouts, code...), and utility classes beat layout styles.
 
-### Checklist for a new layout
+## layout.md
 
-1. Create `layouts/<name>/template.html` with a leading comment listing its slots.
-2. Add `style.css` if needed.
-3. Use it in a deck and run `dex check` (template errors such as unknown variables show up here).
-4. Look at it with `dex dev`, in both themes (`d` toggles the theme).
-5. Run `dex fit` if the layout changes how much content fits.
-6. Add it to the "Available layouts" table at the top of this document (the engine's `docs/layouts.md`).
+Usage notes for people and agents. `dex docs layouts` shows them next to the layout, and `dex check` warns when a layout has none or has no description.
+
+```markdown
+---
+description: A large centred quotation with its source underneath.
+---
+
+## When to use
+
+For a single memorable quotation. Not for long passages.
+
+## Slots
+
+- default: the quotation.
+- `source`: who said it (fallback: "Unknown author").
+
+## Example
+
+(a complete `::slide{...}` using the layout, in a fenced markdown block)
+```
+
+- `description` is one line. It appears in the list of layouts.
+- The slot names are read from the template and listed automatically: the "Slots" section explains *how* to fill them.
+- Keep the example complete and valid, so it can be copied as-is.
+
+## Checklist for a new layout
+
+1. Run `dex new layout <name>` (or create `layouts/<name>/template.html` by hand), with a leading comment listing its slots.
+2. Edit `template.html` and `style.css`.
+3. Fill in `layout.md`: the description, when to use it, the slots, and an example.
+4. Use it in a deck and run `dex check` (template errors such as unknown variables show up here).
+5. Look at it with `dex dev`, in both themes (`d` toggles the theme).
+6. Run `dex fit` if the layout changes how much content fits.
+7. Check that `dex docs layouts` lists it with its description and notes.

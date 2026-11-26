@@ -23,6 +23,8 @@ export const LAYOUTS_DIR = join(ENGINE_ROOT, 'layouts')
 export const CLIENT_ENTRY = 'src/client/main.ts'
 
 export const DECKS_FOLDER = 'decks'
+/** Local layouts of a content folder: `<folder>/layouts/<name>/`. */
+export const LAYOUTS_FOLDER = 'layouts'
 export const OUT_FOLDER = 'dist'
 
 export interface ContentLocations {
