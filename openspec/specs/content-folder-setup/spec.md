@@ -32,10 +32,10 @@ Prepares a content folder so that people and AI agents working on decks there ha
 ### Requirement: Content of the agent instructions
 
 The managed block SHALL tell agents:
-- the folder layout: decks and assets, `layouts/<name>/`, `tikz/preamble.tex` and `.dex/cache/`;
+- the folder layout: decks, assets, local and deck layouts, `tikz/preamble.tex`, `.dex/cache/`;
 - that slide ids are permanent;
-- the `dex` commands, including `dex new layout` and `dex shot`;
-- that work is done when `dex check` and `dex fit` are clean and changed slides were looked at;
+- the `dex` commands, including `dex new layout` (with `--deck`) and `dex shot`;
+- that work is done when `dex check` and `dex fit` are clean and changed slides were seen;
 - not to edit the output folder;
 - to read the reference with `dex docs` and `dex docs layouts`;
 - which content skills are available.
@@ -47,6 +47,10 @@ The managed block SHALL tell agents:
 #### Scenario: Agent needs a new layout
 - **WHEN** an agent reads `AGENTS.md` while deciding how to present a recurring pattern
 - **THEN** it learns that local layouts live in `layouts/`, that `dex new layout <name>` creates one, and that `dex docs layouts` lists the existing ones
+
+#### Scenario: Agent needs a layout for one deck
+- **WHEN** an agent reads `AGENTS.md` while deciding where a layout that only one deck uses should go
+- **THEN** it learns that deck layouts live in `decks/<slug>/layouts/`, that `dex new layout <name> --deck <slug>` creates one, and that `dex docs layouts --deck <slug>` lists what that deck can use
 
 #### Scenario: Agent wants a diagram
 - **WHEN** an agent reads `AGENTS.md` while deciding how to explain a process
@@ -62,11 +66,11 @@ The managed block SHALL tell agents:
 
 ### Requirement: Content agent skills
 
-`dex init` SHALL install the content skills `author-deck` (creating and editing decks), `author-layout` (creating and changing local layouts) and `migrate-remark-deck` (recreating remark.js decks) into `.agents/skills/<name>/`, and SHALL make `.claude/skills/<name>` a relative link to each. Each installed skill SHALL be marked as managed by Dex.
+`dex init` SHALL install the content skills `author-deck` (creating and editing decks), `author-layout` (creating and changing layouts), `author-theme` (creating and changing local themes) and `migrate-remark-deck` (recreating remark.js decks) into `.agents/skills/<name>/`, and SHALL make `.claude/skills/<name>` a relative link to each. Each installed skill SHALL be marked as managed by Dex.
 
 #### Scenario: Skills installed
 - **WHEN** `dex init` completes
-- **THEN** `.agents/skills/author-deck/SKILL.md`, `.agents/skills/author-layout/SKILL.md` and `.agents/skills/migrate-remark-deck/SKILL.md` exist, and `.claude/skills/author-layout` resolves to its folder
+- **THEN** `.agents/skills/author-deck/SKILL.md`, `.agents/skills/author-layout/SKILL.md`, `.agents/skills/author-theme/SKILL.md` and `.agents/skills/migrate-remark-deck/SKILL.md` exist, and `.claude/skills/author-layout` resolves to its folder
 
 #### Scenario: Unrelated skills
 - **WHEN** `.agents/skills/my-own-skill/` exists
@@ -123,3 +127,23 @@ Running `dex init` again SHALL be idempotent. It SHALL replace only the managed 
 #### Scenario: Never initialised
 - **WHEN** the content folder has no managed block and no managed skills
 - **THEN** `dex check` prints no instructions warning
+
+### Requirement: Themes in the agent instructions
+
+The managed block SHALL tell agents that local themes live in `themes/<name>/`, that `dex.yaml` sets the folder's default theme, that `dex docs themes` lists the themes and `dex new theme <name>` creates one, and that a deck's theme is the author's choice: agents SHALL NOT change a deck's `theme`, change `dex.yaml`, or create or edit themes unless the user asks.
+
+#### Scenario: Agent editing a deck
+- **WHEN** an agent reads `AGENTS.md` while editing or migrating a deck
+- **THEN** it learns to keep the deck's `theme` and `dex.yaml` as they are unless the user asks to change them
+
+#### Scenario: Agent asked for new colours
+- **WHEN** an agent reads `AGENTS.md` after the user asks for a deck in different colours
+- **THEN** it learns to check `dex docs themes` for an existing theme first, and otherwise to create one with `dex new theme <name>` following the `author-theme` skill
+
+### Requirement: Theme authoring skill
+
+The `author-theme` skill SHALL tell agents to create or change a theme only when the user asks, to prefer an existing theme when one fits, and to create new ones with `dex new theme`. It SHALL explain how to set light and dark values, keep text readable (the contrast check), check diagrams, document the theme in `theme.md`, and verify with `dex check` and `dex shot` in both modes.
+
+#### Scenario: Skill read before creating a theme
+- **WHEN** an agent follows `author-theme` to create a theme `ocean` for a deck
+- **THEN** it creates `themes/ocean/` with `dex new theme`, sets both modes, documents the theme, selects it only for the deck the user named, and finishes with `dex check` free of theme warnings

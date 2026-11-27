@@ -1,4 +1,13 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -145,6 +154,36 @@ describe('dex docs', () => {
     expect(stdout).toContain('| `quote` | local |')
   })
 
+  it('names the decks with their own layouts, without listing them', async () => {
+    const { stdout } = await runDex(join(FIXTURES, 'local-layouts'), 'docs', 'layouts')
+    expect(stdout).not.toContain('| deck |')
+    expect(stdout).toContain(
+      'These decks also have their own layouts, which only they can use: `one` (example), `two` (example). To list everything a deck can use, run `dex docs layouts --deck <slug>`.',
+    )
+  })
+
+  it("lists a deck's own layouts with --deck", async () => {
+    const { code, stdout } = await runDex(
+      join(FIXTURES, 'local-layouts'),
+      'docs',
+      'layouts',
+      '--deck',
+      'one',
+    )
+    expect(code).toBe(0)
+    expect(stdout).toContain('The layouts the `one` deck can use')
+    expect(stdout).toContain('| `quote` | local |')
+    expect(stdout).toContain("| `example` | deck | Deck one's example layout. | `title`, default |")
+    expect(stdout).toContain('## `example` (deck)')
+    expect(stdout).not.toContain('These decks also have')
+  })
+
+  it('rejects an unknown deck', async () => {
+    const { code, stderr } = await runDex(tmpdir(), 'docs', 'layouts', '--deck', 'nope')
+    expect(code).toBe(1)
+    expect(stderr).toContain('No deck "nope" (expected decks/nope/slides.md).')
+  })
+
   it('lists the topics', async () => {
     const { code, stdout } = await runDex(tmpdir(), 'docs', '--list')
     expect(code).toBe(0)
@@ -153,9 +192,9 @@ describe('dex docs', () => {
   })
 
   it('rejects unknown topics, listing the available ones', async () => {
-    const { code, stderr } = await runDex(tmpdir(), 'docs', 'themes')
+    const { code, stderr } = await runDex(tmpdir(), 'docs', 'fonts')
     expect(code).toBe(1)
-    expect(stderr).toContain('Unknown docs topic "themes". Available: authoring, layouts.')
+    expect(stderr).toContain('Unknown docs topic "fonts". Available: authoring, layouts, themes.')
   })
 })
 
@@ -210,10 +249,96 @@ describe('dex new layout', () => {
     expect(stderr).toContain('layouts/quote/ already exists.')
   })
 
+  describe('--deck', () => {
+    const slides = (layout: string) =>
+      writeFileSync(
+        join(folder, 'decks/demo/slides.md'),
+        `---\ntitle: Demo\n---\n\n::slide{#a layout=${layout}}\n\n# Hello\n\nBody.\n`,
+      )
+
+    it('creates a working deck layout whose only warning is the missing description', async () => {
+      slides('request')
+      const created = await runDex(folder, 'new', 'layout', 'request', '--deck', 'demo')
+      expect(created.code).toBe(0)
+      for (const file of ['template.html', 'style.css', 'layout.md']) {
+        expect(created.stdout).toContain(`created  decks/demo/layouts/request/${file}`)
+      }
+      expect(created.stdout).toContain(
+        'Use it in the "demo" deck with ::slide{#id layout=request}.',
+      )
+      expect(existsSync(join(folder, 'layouts'))).toBe(false)
+
+      const { code, stdout } = await runDex(folder, 'check')
+      expect(code).toBe(0)
+      expect(stdout).toContain(
+        'decks/demo/layouts/request/layout.md:1 warning layout.md has no description',
+      )
+      expect(stdout).toContain('0 error(s), 1 warning(s).')
+    })
+
+    it.each([
+      [
+        'an unknown deck',
+        ['request', '--deck', 'nope'],
+        'No deck "nope" (expected decks/nope/slides.md).',
+      ],
+      [
+        'a built-in name',
+        ['title', '--deck', 'demo'],
+        '"title" is a built-in layout: deck layouts cannot replace built-in ones.',
+      ],
+      ['an invalid name', ['My_Layout', '--deck', 'demo'], 'Invalid layout name "My_Layout"'],
+    ])('refuses %s and writes nothing', async (_, args, message) => {
+      slides('default')
+      const { code, stderr } = await runDex(folder, 'new', 'layout', ...args)
+      expect(code).toBe(1)
+      expect(stderr).toContain(message)
+      expect(stderr).toContain('Nothing was written.')
+      expect(existsSync(join(folder, 'decks/demo/layouts'))).toBe(false)
+    })
+
+    it('refuses a local layout name', async () => {
+      slides('default')
+      await runDex(folder, 'new', 'layout', 'quote')
+      const { code, stderr } = await runDex(folder, 'new', 'layout', 'quote', '--deck', 'demo')
+      expect(code).toBe(1)
+      expect(stderr).toContain(
+        '"quote" is a local layout (layouts/quote/): deck layouts cannot replace local ones.',
+      )
+      expect(existsSync(join(folder, 'decks/demo/layouts'))).toBe(false)
+    })
+
+    it('refuses an existing deck layout', async () => {
+      slides('default')
+      await runDex(folder, 'new', 'layout', 'request', '--deck', 'demo')
+      const { code, stderr } = await runDex(folder, 'new', 'layout', 'request', '--deck', 'demo')
+      expect(code).toBe(1)
+      expect(stderr).toContain('decks/demo/layouts/request/ already exists.')
+    })
+
+    it('makes dex new layout refuse a name a deck already uses', async () => {
+      slides('default')
+      await runDex(folder, 'new', 'layout', 'request', '--deck', 'demo')
+      const { code, stderr } = await runDex(folder, 'new', 'layout', 'request')
+      expect(code).toBe(1)
+      expect(stderr).toContain(
+        '"request" is already a deck layout of "demo" (decks/demo/layouts/request/): a local layout with that name would replace it.',
+      )
+      expect(existsSync(join(folder, 'layouts'))).toBe(false)
+    })
+
+    it('is rejected by commands that have no deck layouts', async () => {
+      const { code, stderr } = await runDex(folder, 'check', '--deck', 'demo')
+      expect(code).toBe(1)
+      expect(stderr).toContain('--deck only works with `new layout` and `docs layouts`.')
+      expect(stderr).toContain('Usage: dex')
+    })
+  })
+
   it('rejects unknown kinds', async () => {
-    const { code, stderr } = await runDex(folder, 'new', 'theme', 'x')
+    const { code, stderr } = await runDex(folder, 'new', 'font', 'x')
     expect(code).toBe(1)
-    expect(stderr).toContain('Unknown kind "theme"')
+    expect(stderr).toContain('Unknown kind "font"')
   })
 })
 
@@ -234,5 +359,121 @@ describe('dex build with local layouts', () => {
     } finally {
       rmSync(dist, { recursive: true, force: true })
     }
+  })
+})
+
+describe('dex build with themes', () => {
+  it("bundles every theme's scoped CSS and marks pages with their theme", async () => {
+    const folder = mkdtempSync(join(tmpdir(), 'dex-build-themes-'))
+    const dist = join(folder, 'dist')
+    try {
+      cpSync(join(FIXTURES, 'themes'), folder, { recursive: true })
+      writeFileSync(join(folder, 'dex.yaml'), 'theme: ocean\n')
+      const { code } = await runDex(folder, 'build')
+      expect(code).toBe(0)
+      const css = readdirSync(join(dist, '_app')).find((file) => file.endsWith('.css')) ?? ''
+      expect(readFileSync(join(dist, '_app', css), 'utf8')).toMatch(
+        /:root\[data-theme=("?)ocean\1\]\{--color-accent:/,
+      )
+      expect(readFileSync(join(dist, 'demo/index.html'), 'utf8')).toContain(
+        '<html lang="en" data-theme="ocean">',
+      )
+      expect(readFileSync(join(dist, 'index.html'), 'utf8')).toContain('data-theme="ocean"')
+    } finally {
+      rmSync(folder, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('dex new theme', () => {
+  let folder: string
+
+  beforeEach(() => {
+    folder = mkdtempSync(join(tmpdir(), 'dex-new-theme-'))
+    mkdirSync(join(folder, 'decks/demo'), { recursive: true })
+  })
+
+  afterEach(() => {
+    rmSync(folder, { recursive: true, force: true })
+  })
+
+  it('creates a working theme whose only warning is the missing description', async () => {
+    const created = await runDex(folder, 'new', 'theme', 'ocean')
+    expect(created.code).toBe(0)
+    expect(created.stdout).toContain('created  themes/ocean/theme.css')
+    expect(created.stdout).toContain('created  themes/ocean/theme.md')
+    const css = readFileSync(join(folder, 'themes/ocean/theme.css'), 'utf8')
+    expect(css).toContain('--color-accent: light-dark(#1d5fd6, #7ea9ff);')
+    expect(css).toContain('/* --color-link follows --color-accent;')
+
+    writeFileSync(
+      join(folder, 'decks/demo/slides.md'),
+      '---\ntitle: Demo\ntheme: ocean\n---\n\n::slide{#a}\n\n# Hello\n\nBody.\n',
+    )
+    const { code, stdout } = await runDex(folder, 'check')
+    expect(code).toBe(0)
+    expect(stdout).toContain(
+      'themes/ocean/theme.md:1 warning theme.md has no description: add a one-line `description:` to its front matter.',
+    )
+    expect(stdout).toContain('0 error(s), 1 warning(s).')
+  })
+
+  it.each([
+    [
+      'a built-in name',
+      ['default'],
+      '"default" is a built-in theme: local themes cannot replace built-in ones.',
+    ],
+    ['an invalid name', ['Ocean_Blue'], 'Invalid theme name "Ocean_Blue"'],
+    ['a missing name', [], 'Missing theme name'],
+  ])('refuses %s and writes nothing', async (_, args, message) => {
+    const { code, stderr } = await runDex(folder, 'new', 'theme', ...args)
+    expect(code).toBe(1)
+    expect(stderr).toContain(message)
+    expect(stderr).toContain('Nothing was written.')
+    expect(existsSync(join(folder, 'themes'))).toBe(false)
+  })
+
+  it('refuses an existing local theme', async () => {
+    await runDex(folder, 'new', 'theme', 'ocean')
+    const { code, stderr } = await runDex(folder, 'new', 'theme', 'ocean')
+    expect(code).toBe(1)
+    expect(stderr).toContain('themes/ocean/ already exists.')
+  })
+})
+
+describe('dex docs themes', () => {
+  it('lists the built-in themes with their colours, then the guide and the tokens', async () => {
+    const { code, stdout } = await runDex(tmpdir(), 'docs', 'themes')
+    expect(code).toBe(0)
+    for (const name of ['default', 'slate', 'forest', 'ember', 'high-contrast']) {
+      expect(stdout).toContain(`| \`${name}\` | built-in |`)
+    }
+    expect(stdout).toContain(
+      "use the folder's theme: **`default`** (no theme is set in `dex.yaml`)",
+    )
+    expect(stdout).toContain('## Making themes')
+    expect(stdout).toContain('| `--color-accent` | the theme colour:')
+  })
+
+  it('lists local themes and the folder default from dex.yaml', async () => {
+    const { stdout } = await runDex(join(FIXTURES, 'viewer'), 'docs', 'themes')
+    expect(stdout).toContain('**`slate`** (set in `dex.yaml`)')
+    const folder = mkdtempSync(join(tmpdir(), 'dex-docs-themes-'))
+    try {
+      cpSync(join(FIXTURES, 'themes'), folder, { recursive: true })
+      const local = await runDex(folder, 'docs', 'themes')
+      expect(local.stdout).toContain(
+        '| `ocean` | local | Teal accents and deep blue title slides (test theme). | `#FFFFFF` / `#1B2130` / `#0B6E70` |',
+      )
+      expect(local.stdout).toContain('## `ocean` (local)')
+    } finally {
+      rmSync(folder, { recursive: true, force: true })
+    }
+  })
+
+  it('is listed among the topics', async () => {
+    const { stdout } = await runDex(tmpdir(), 'docs', '--list')
+    expect(stdout).toMatch(/^themes\s+\S/m)
   })
 })

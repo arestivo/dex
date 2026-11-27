@@ -1,0 +1,19 @@
+/* forest: greens on a warm paper background. */
+:root {
+  --color-bg: light-dark(#fdfdf8, #0f1611);
+  --color-page: light-dark(#edf0e6, #090d0a);
+  --color-surface: light-dark(#f3f6ee, #18221b);
+  --color-text: light-dark(#1c2a20, #e1eadf);
+  --color-muted: light-dark(#55655a, #9fb2a3);
+  --color-border: light-dark(#d5ddd0, #2b3a2f);
+  --color-accent: light-dark(#1e6b3a, #7fd69a);
+  --color-highlight: light-dark(#fff2b3, #44400a);
+  --color-inverse-bg: light-dark(#173d27, #1b4430);
+  --color-inverse-text: #f1f7f1;
+  --color-inverse-muted: #b9cfbf;
+  --color-inverse-link: #b6eac4;
+  --tone-info: light-dark(#1e6b3a, #7fd69a);
+  --tone-info-bg: light-dark(#e7f4ea, #15291c);
+  --code-bg: light-dark(#f5f7f0, #0b110d);
+  --code-inline-bg: light-dark(#ecf0e5, #1f2b22);
+}

@@ -31,6 +31,7 @@ Every slide starts with `::slide{#id ...}`. Ids are permanent once published: th
 - Put images in `decks/<slug>/assets/`, reference them as `assets/<file>` and give them alt text.
 - Use the layouts (`dex docs layouts`) and utility classes (`dex docs`). Don't invent CSS classes or inline styles to fix a single slide.
 - If the same arrangement keeps recurring and no layout fits, create a local layout instead (see the `author-layout` skill).
+- Keep the deck's `theme:` as you found it, and don't add one to a new deck: colours are the author's choice (see the `author-theme` skill when they ask).
 - Explain processes, flows and structures with a diagram when it is clearer than bullets: a ```` ```tikz alt="..." ```` block (see "Diagrams" in `dex docs`). Use the slide colours (`DexInk`, `DexAccent`…), keep shared styles in `tikz/preamble.tex`, and always write the alt text.
 
 ## 5. Validate until clean
@@ -42,7 +43,7 @@ Repeat both until they report nothing.
 
 ## 6. Look at it
 
-Run `dex shot <slug> <id...>` for the slides you changed and look at the images (light and dark), or use `dex dev` and toggle the theme with `d`. Fix what looks wrong (cramped or overflowing labels, arrows crossing boxes, unreadable colours) and look again.
+Run `dex shot <slug> <id...>` for the slides you changed and look at the images (light and dark), or use `dex dev` and toggle light/dark mode with `d`. Fix what looks wrong (cramped or overflowing labels, arrows crossing boxes, unreadable colours) and look again.
 
 ## 7. Report
 

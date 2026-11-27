@@ -7,7 +7,7 @@
  *   <folder>/dist/                     built static site (or --dist)
  *
  * The folder is the working directory unless `--folder` is given.
- * Layouts, styles and the viewer belong to the engine and are found
+ * Built-in layouts and themes, styles and the viewer belong to the engine and are found
  * relative to this file, wherever the command runs.
  */
 import { join, resolve } from 'node:path'
@@ -19,12 +19,22 @@ export const ENGINE_ROOT = fileURLToPath(new URL('../../', import.meta.url))
 /** The engine's layouts folder. */
 export const LAYOUTS_DIR = join(ENGINE_ROOT, 'layouts')
 
+/** The engine's themes folder. */
+export const THEMES_DIR = join(ENGINE_ROOT, 'themes')
+
+/** The engine's design tokens: the default colours, and which tokens a theme may set. */
+export const TOKENS_FILE = join(ENGINE_ROOT, 'styles', 'tokens.css')
+
 /** Browser entry point of the viewer, relative to the engine root. */
 export const CLIENT_ENTRY = 'src/client/main.ts'
 
 export const DECKS_FOLDER = 'decks'
 /** Local layouts of a content folder: `<folder>/layouts/<name>/`. */
 export const LAYOUTS_FOLDER = 'layouts'
+/** Local themes of a content folder: `<folder>/themes/<name>/`. */
+export const THEMES_FOLDER = 'themes'
+/** The content folder's settings file. */
+export const SETTINGS_FILE = 'dex.yaml'
 export const OUT_FOLDER = 'dist'
 
 export interface ContentLocations {

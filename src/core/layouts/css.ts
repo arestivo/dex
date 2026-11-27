@@ -1,11 +1,14 @@
 /**
- * Wraps a layout stylesheet so it only applies to slides using that layout.
- * Inside, `:scope` refers to the slide element itself.
+ * Wraps a layout stylesheet so it only applies to slides using that layout
+ * (and, for a deck layout, only in that deck: two decks may have deck
+ * layouts with the same name). Inside, `:scope` refers to the slide element.
  */
-export function scopeLayoutCss(name: string, css: string): string {
+export function scopeLayoutCss(name: string, css: string, deck?: string): string {
   const body = css.trim()
   if (body === '') return ''
-  return `@layer layouts {\n  @scope (.slide[data-layout="${name}"]) {\n${indent(body)}\n  }\n}\n`
+  const slide = `.slide[data-layout="${name}"]`
+  const root = deck === undefined ? slide : `.deck[data-deck="${deck}"] ${slide}`
+  return `@layer layouts {\n  @scope (${root}) {\n${indent(body)}\n  }\n}\n`
 }
 
 /** Constructs that cannot appear inside `@scope`/`@layer` blocks. */

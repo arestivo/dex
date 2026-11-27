@@ -18,6 +18,7 @@ import { collectReferences } from './markdown/references.ts'
 import { contentOf, markdownToHast } from './markdown/to-hast.ts'
 import {
   type CompiledDeck,
+  DEFAULT_THEME,
   type DeckMeta,
   IDENTIFIER_PATTERN,
   type Layout,
@@ -35,7 +36,17 @@ export interface DeckInput {
   /** Whether a path relative to the deck folder exists. */
   readonly assetExists: (path: string) => boolean
   /** Renders the deck's tikz blocks (light and dark); absent when diagrams cannot be rendered. */
-  readonly renderDiagrams?: ((sources: readonly string[]) => Promise<DiagramOutcome[]>) | undefined
+  readonly renderDiagrams?:
+    | ((sources: readonly string[], theme: string) => Promise<DiagramOutcome[]>)
+    | undefined
+  /** The themes a deck may name, and the one used when it names none. */
+  readonly themes?: ThemeChoice | undefined
+}
+
+export interface ThemeChoice {
+  readonly available: readonly string[]
+  /** The folder theme (from `dex.yaml`), or `default`. */
+  readonly fallback: string
 }
 
 export interface CompileResult {
@@ -61,6 +72,7 @@ export async function compileDeck(
   const { file } = input
 
   const { meta, body, bodyLine } = parseFrontMatter(input.source, file, diagnostics)
+  const theme = resolveTheme(meta?.theme, input, diagnostics)
 
   const sources = splitSlides(body, bodyLine).filter((chunk) => {
     if (chunk.markdown.trim() !== '') return true
@@ -84,7 +96,7 @@ export async function compileDeck(
   )
   const slideIds = new Set(slides.flatMap((slide) => (slide.id ? [slide.id] : [])))
   const highlighter = await prepareHighlighter(slides.map((slide) => slide.tree))
-  const diagrams = await prepareDiagrams(slides, input, diagnostics)
+  const diagrams = await prepareDiagrams(slides, input, theme, diagnostics)
   const assets = new Set<string>()
   const rendered: RenderedSlide[] = []
 
@@ -136,7 +148,26 @@ export async function compileDeck(
   })
 
   if (meta === undefined || diagnostics.hasErrors) return { deck: undefined, diagnostics }
-  return { deck: { slug: input.slug, meta, slides: rendered, assets }, diagnostics }
+  return { deck: { slug: input.slug, meta, slides: rendered, theme, assets }, diagnostics }
+}
+
+/** The deck's theme: its own if it names a known one, else the folder theme. */
+function resolveTheme(
+  named: string | undefined,
+  input: DeckInput,
+  diagnostics: DiagnosticBag,
+): string {
+  const fallback = input.themes?.fallback ?? DEFAULT_THEME
+  if (named === undefined) return fallback
+  const available = input.themes?.available
+  if (available === undefined || available.includes(named)) return named
+  const line = input.source.split(/\r?\n/).findIndex((text) => text.startsWith('theme:')) + 1
+  diagnostics.error(
+    input.file,
+    `Unknown theme "${named}". Available: ${[...available].sort().join(', ')}. Run \`dex docs themes\` to see them.`,
+    { line: line || 1 },
+  )
+  return fallback
 }
 
 /**
@@ -147,6 +178,7 @@ export async function compileDeck(
 async function prepareDiagrams(
   slides: readonly ParsedSlide[],
   input: DeckInput,
+  theme: string,
   diagnostics: DiagnosticBag,
 ): Promise<Map<Code, Element>> {
   const figures = new Map<Code, Element>()
@@ -185,7 +217,10 @@ async function prepareDiagrams(
     return figures
   }
 
-  const outcomes = await input.renderDiagrams(blocks.map((block) => block.node.value))
+  const outcomes = await input.renderDiagrams(
+    blocks.map((block) => block.node.value),
+    theme,
+  )
   const reported = new Set<string>()
   const counts = new Map<string, number>()
   blocks.forEach((block, index) => {

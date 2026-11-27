@@ -1,0 +1,19 @@
+/* ember: warm oranges and reds on cream. */
+:root {
+  --color-bg: light-dark(#fffdfa, #17120f);
+  --color-page: light-dark(#f3ece4, #0d0a08);
+  --color-surface: light-dark(#faf4ee, #221a15);
+  --color-text: light-dark(#2a1d16, #f0e6df);
+  --color-muted: light-dark(#6b5a50, #b8a79c);
+  --color-border: light-dark(#e6d9cc, #3a2d24);
+  --color-accent: light-dark(#b4441a, #ff9f6e);
+  --color-highlight: light-dark(#fff0a8, #4d3a00);
+  --color-inverse-bg: light-dark(#3a1f14, #3f2418);
+  --color-inverse-text: #fbf3ee;
+  --color-inverse-muted: #dcc3b6;
+  --color-inverse-link: #ffc6a6;
+  --tone-info: light-dark(#b4441a, #ff9f6e);
+  --tone-info-bg: light-dark(#fdeee6, #33201a);
+  --code-bg: light-dark(#fbf6f1, #120e0b);
+  --code-inline-bg: light-dark(#f3ebe3, #2a211b);
+}

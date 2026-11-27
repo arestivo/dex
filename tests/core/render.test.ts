@@ -10,7 +10,7 @@ describe('renderDeckPage', () => {
   it('renders every slide as a labelled section inside the deck', async () => {
     const result = await compiledDeck(deck(slide('intro', '# Intro'), slide('more', '# More')))
     const html = renderDeckPage(result, assets)
-    expect(html).toMatch(/^<!doctype html>\n<html lang="en">/)
+    expect(html).toMatch(/^<!doctype html>\n<html lang="en" data-theme="default">/)
     expect(html).toContain('<main class="deck" data-deck="test" aria-label="Test deck">')
     expect(html).toContain(
       '<section id="intro" class="slide" data-layout="default" data-number="1" aria-roledescription="slide" aria-label="Slide 1 of 2: Intro">',
@@ -18,6 +18,19 @@ describe('renderDeckPage', () => {
     expect(html).toContain('id="more"')
     expect(html).toContain('<script type="module" src="../_app/app.js"></script>')
     expect(html).toContain('<link rel="stylesheet" href="../_app/app.css">')
+  })
+
+  it('sets the deck theme on the root element', async () => {
+    const result = await compiledDeck(deck(slide('intro', '# Intro')))
+    expect(renderDeckPage(result, assets)).toMatch(
+      /^<!doctype html>\n<html lang="en" data-theme="default">/,
+    )
+    const themed = await compileWorkspace({ root: join(FIXTURES, 'themes') })
+    const demo = themed.decks[0]
+    if (demo === undefined) throw new Error('no deck')
+    expect(renderDeckPage({ ...demo, theme: 'ocean' }, assets)).toContain(
+      '<html lang="en" data-theme="ocean">',
+    )
   })
 
   it('uses only relative URLs for its own files', async () => {
@@ -44,6 +57,19 @@ describe('renderIndexPage', () => {
     expect(html.indexOf('href="demo/"')).toBeLessThan(html.indexOf('href="test/"'))
     expect(html).toContain('<span class="deck-list__title">Demo</span>')
   })
+
+  it('uses the folder theme', () => {
+    const html = renderIndexPage(
+      [],
+      { scripts: [], styles: [] },
+      {
+        title: 'Slides',
+        deckHref: (slug) => slug,
+        theme: 'ocean',
+      },
+    )
+    expect(html).toContain('<html lang="en" data-theme="ocean">')
+  })
 })
 
 describe('renderErrorPage', () => {
@@ -53,5 +79,8 @@ describe('renderErrorPage', () => {
       { scripts: [], styles: [] },
     )
     expect(html).toContain('a.md:1 error Bad &lt;tag&gt;')
+    expect(renderErrorPage([], { scripts: [], styles: [] }, 'ocean')).toContain(
+      'data-theme="ocean"',
+    )
   })
 })

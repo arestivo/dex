@@ -97,6 +97,8 @@ describe('planScaffold', () => {
       '.claude/skills/author-deck': 'create',
       '.agents/skills/author-layout/': 'create',
       '.claude/skills/author-layout': 'create',
+      '.agents/skills/author-theme/': 'create',
+      '.claude/skills/author-theme': 'create',
       '.agents/skills/migrate-remark-deck/': 'create',
       '.claude/skills/migrate-remark-deck': 'create',
     })
@@ -106,9 +108,21 @@ describe('planScaffold', () => {
     expect(read('AGENTS.md')).toContain('dex docs')
     expect(read('AGENTS.md')).toContain('- `author-deck`:')
     expect(read('AGENTS.md')).toContain('- `author-layout`:')
+    expect(read('AGENTS.md')).toContain('- `author-theme`:')
+    expect(read('AGENTS.md')).toContain('themes/<name>/')
+    expect(read('AGENTS.md')).toContain('dex new theme <name>')
+    expect(read('AGENTS.md')).toContain('dex docs themes')
+    expect(read('AGENTS.md')).toContain(
+      "**The theme is the author's choice.** Don't change a deck's `theme:`, change `dex.yaml`, or create or edit themes unless the user asks.",
+    )
+    expect(read('.agents/skills/author-theme/SKILL.md')).toContain('Only when asked')
     expect(read('AGENTS.md')).toContain('layouts/<name>/')
     expect(read('AGENTS.md')).toContain('dex new layout <name>')
     expect(read('AGENTS.md')).toContain('dex docs layouts')
+    expect(read('AGENTS.md')).toContain('decks/<slug>/layouts/')
+    expect(read('AGENTS.md')).toContain('dex new layout <name> --deck <slug>')
+    expect(read('AGENTS.md')).toContain('dex docs layouts --deck <slug>')
+    expect(read('.agents/skills/author-layout/SKILL.md')).toContain('decks/<slug>/layouts/<name>/')
     expect(read('AGENTS.md')).toContain('tikz/preamble.tex')
     expect(read('AGENTS.md')).toContain('dex shot <slug>')
     expect(read('AGENTS.md')).toContain('.dex/cache/')

@@ -35,7 +35,7 @@ afterEach(() => {
 })
 
 describe('diagram cache', () => {
-  it('renders each block in both themes and stores normalised SVGs', async () => {
+  it('renders each block in both modes and stores normalised SVGs', async () => {
     const [outcome] = await renderer()('talk', [A])
     expect(outcome).toEqual({
       svg: {
@@ -119,5 +119,42 @@ describe('diagram cache', () => {
       { error: { file: 'block', line: 1, message: 'boom' } },
     ])
     expect(() => readdirSync(join(root, CACHE_DIR))).toThrow()
+  })
+})
+
+describe('diagram cache with themes', () => {
+  const forest = new Map([['color-accent', { light: '1E6B3A', dark: '7FD69A' }]])
+
+  it('gives a deck on the default theme the same keys as before themes', async () => {
+    await renderer()('talk', [A])
+    jobs = []
+    await renderer()('talk', [A], new Map())
+    expect(jobs).toEqual([])
+  })
+
+  it("uses the theme's colours in the palettes, and misses only that deck's diagrams", async () => {
+    await renderer()('talk', [A])
+    await renderer()('other', [A])
+    jobs = []
+    await renderer()('talk', [A], forest)
+    expect(jobs).toHaveLength(2)
+    expect(jobs.find((job) => job.palette.includes('\\DexDarkfalse'))?.palette).toContain(
+      '\\definecolor{DexAccent}{HTML}{1E6B3A}',
+    )
+    expect(jobs.find((job) => job.palette.includes('\\DexDarktrue'))?.palette).toContain(
+      '\\definecolor{DexAccent}{HTML}{7FD69A}',
+    )
+    jobs = []
+    await renderer()('other', [A])
+    expect(jobs).toEqual([])
+  })
+
+  it('recompiles when the theme colours change, and only then', async () => {
+    await renderer()('talk', [A], forest)
+    jobs = []
+    await renderer()('talk', [A], new Map(forest))
+    expect(jobs).toEqual([])
+    await renderer()('talk', [A], new Map([['color-accent', { light: '1E6B3B', dark: '7FD69A' }]]))
+    expect(jobs).toHaveLength(2)
   })
 })

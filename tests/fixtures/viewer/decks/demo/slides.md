@@ -1,4 +1,6 @@
 ---
+# Pinned, so the committed diagram cache stays valid whatever dex.yaml says.
+theme: default
 title: Viewer test deck
 subtitle: Fixture for the e2e tests
 author: Test Author
@@ -86,6 +88,14 @@ Edsger W. Dijkstra
   \draw[go] (a)--(o);
 \end{tikzpicture}
 ```
+
+---
+
+::slide{#banner layout=banner}
+
+# Deck layout
+
+This layout belongs to this deck only.
 
 ---
 

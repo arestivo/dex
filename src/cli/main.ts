@@ -30,6 +30,7 @@ Options:
   --folder <dir>        content folder containing decks/ (default: current folder)
   --dist <dir>          output folder for the site (default: <folder>/dist)
   --port <n>            port for dev and preview
+  --deck <slug>         with new layout and docs layouts: that deck's own layouts
   --list                with docs: list the topics
   -h, --help            show this help
 `
@@ -43,6 +44,7 @@ async function main(argv: readonly string[]): Promise<number> {
       folder: { type: 'string' },
       dist: { type: 'string' },
       port: { type: 'string' },
+      deck: { type: 'string' },
       list: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
@@ -58,6 +60,14 @@ async function main(argv: readonly string[]): Promise<number> {
   const port = values.port === undefined ? undefined : Number(values.port)
   if (port !== undefined && !Number.isInteger(port)) {
     console.error(`Invalid --port "${values.port}".`)
+    return 1
+  }
+
+  // Only deck layouts are per deck; elsewhere --deck would be silently ignored.
+  const takesDeck =
+    (command === 'new' && args[0] === 'layout') || (command === 'docs' && args[0] === 'layouts')
+  if (values.deck !== undefined && !takesDeck) {
+    console.error(`--deck only works with \`new layout\` and \`docs layouts\`.\n\n${USAGE}`)
     return 1
   }
 
@@ -78,7 +88,7 @@ async function main(argv: readonly string[]): Promise<number> {
     case 'init':
       return runInit(content)
     case 'new':
-      return runNew(content, args[0], args[1])
+      return runNew(content, args[0], args[1], values.deck)
     case 'check':
       return runCheck(content, args)
     case 'fit':
@@ -86,7 +96,7 @@ async function main(argv: readonly string[]): Promise<number> {
     case 'shot':
       return runShot(content, args)
     case 'docs':
-      return runDocs(content, args[0], values.list === true)
+      return runDocs(content, args[0], values.list === true, values.deck)
     default:
       console.error(`Unknown command "${command}".\n\n${USAGE}`)
       return 1

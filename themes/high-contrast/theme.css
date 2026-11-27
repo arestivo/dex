@@ -1,0 +1,27 @@
+/* high-contrast: black and white with strong accents, for projectors and bright rooms. */
+:root {
+  --color-bg: light-dark(#ffffff, #000000);
+  --color-page: light-dark(#ffffff, #000000);
+  --color-surface: light-dark(#f2f2f2, #141414);
+  --color-text: light-dark(#000000, #ffffff);
+  --color-muted: light-dark(#333333, #d0d0d0);
+  --color-border: light-dark(#000000, #ffffff);
+  --color-accent: light-dark(#0040c0, #8cb4ff);
+  --color-highlight: light-dark(#ffff00, #5c5000);
+  --color-inverse-bg: #000000;
+  --color-inverse-text: #ffffff;
+  --color-inverse-muted: #e0e0e0;
+  --color-inverse-link: #9cc0ff;
+  --tone-info: light-dark(#0040c0, #8cb4ff);
+  --tone-info-bg: light-dark(#e6eeff, #001a4d);
+  --tone-warning: light-dark(#7a4000, #ffc04d);
+  --tone-warning-bg: light-dark(#fff3d6, #332200);
+  --tone-error: light-dark(#a00000, #ff8080);
+  --tone-error-bg: light-dark(#ffe5e5, #330000);
+  --tone-success: light-dark(#005a1f, #66e08c);
+  --tone-success-bg: light-dark(#e3f7e9, #002910);
+  --tone-example: light-dark(#5a1e9e, #d0a8ff);
+  --tone-example-bg: light-dark(#f1e8fd, #220d3d);
+  --code-bg: light-dark(#f5f5f5, #0a0a0a);
+  --code-inline-bg: light-dark(#ebebeb, #1a1a1a);
+}

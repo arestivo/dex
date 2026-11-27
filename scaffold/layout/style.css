@@ -2,7 +2,7 @@
  * Styles for slides using the "{{name}}" layout. Dex wraps this file in
  * @scope, so selectors only match inside those slides, and :scope is the
  * slide itself. Size things in em (they scale with the slide) and use the
- * design tokens, so both themes work. See `dex docs layouts`.
+ * design tokens, so light and dark mode (and every colour theme) work. See `dex docs layouts`.
  */
 
 :scope {

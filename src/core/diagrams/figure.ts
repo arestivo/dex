@@ -4,7 +4,7 @@
  */
 import type { Element } from 'hast'
 import { fromHtml } from 'hast-util-from-html'
-import { DIAGRAM_THEMES, type DiagramTheme } from './palette.ts'
+import { MODES, type Mode } from './palette.ts'
 import type { DiagramRenderings } from './render.ts'
 
 /** TeX points per em of slide text: 10pt labels are as large as body text. */
@@ -15,8 +15,8 @@ export function diagramFigure(
   alt: string | undefined,
   prefix: string,
 ): Element {
-  const children = DIAGRAM_THEMES.map((theme) =>
-    renderingElement(renderings[theme], theme, `${prefix}${theme}-`),
+  const children = MODES.map((mode) =>
+    renderingElement(renderings[mode], mode, `${prefix}${mode}-`),
   )
   return {
     type: 'element',
@@ -30,7 +30,7 @@ export function diagramFigure(
   }
 }
 
-function renderingElement(svg: string, theme: DiagramTheme, prefix: string): Element {
+function renderingElement(svg: string, mode: Mode, prefix: string): Element {
   const width = svgWidthEm(svg)
   const root = fromHtml(prefixIds(svg, prefix), { fragment: true })
   const element = root.children.find(
@@ -40,7 +40,7 @@ function renderingElement(svg: string, theme: DiagramTheme, prefix: string): Ele
   const { width: _width, height: _height, ...properties } = element.properties
   element.properties = {
     ...properties,
-    className: ['diagram__render', `diagram__render--${theme}`],
+    className: ['diagram__render', `diagram__render--${mode}`],
     ariaHidden: 'true',
     focusable: 'false',
     ...(width === undefined ? {} : { style: `width: ${width}em` }),

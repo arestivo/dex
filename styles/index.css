@@ -7,6 +7,7 @@
  *
  *   reset       normalisation of browser defaults
  *   tokens      design tokens (custom properties), light/dark values
+ *   themes      colour themes: token values per theme, generated from themes/<name>/theme.css
  *   base        element defaults (typography, links, media)
  *   viewer      page frame: deck stage, slide box, viewer chrome
  *   components  reusable content blocks (callout, code, table, toc...)
@@ -14,7 +15,7 @@
  *   utilities   single-purpose classes usable from :::div / :span
  *   print       print output
  */
-@layer reset, tokens, base, viewer, components, layouts, utilities, print;
+@layer reset, tokens, themes, base, viewer, components, layouts, utilities, print;
 
 @import "./fonts.css";
 @import "./reset.css";

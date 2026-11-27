@@ -3,7 +3,7 @@ import type { DiagnosticBag } from '../diagnostics.ts'
 import type { Author, DeckMeta } from '../model.ts'
 
 const FENCE = /^---\s*$/
-const ALLOWED_KEYS = new Set(['title', 'subtitle', 'description', 'author', 'lang'])
+const ALLOWED_KEYS = new Set(['title', 'subtitle', 'description', 'author', 'lang', 'theme'])
 const LANG_PATTERN = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/
 
 export interface FrontMatterResult {
@@ -86,6 +86,7 @@ function validateMeta(
 
   const subtitle = optionalString(data, 'subtitle', file, diagnostics)
   const description = optionalString(data, 'description', file, diagnostics)
+  const theme = optionalString(data, 'theme', file, diagnostics)
   const lang = optionalString(data, 'lang', file, diagnostics) ?? 'en'
   if (!LANG_PATTERN.test(lang)) {
     diagnostics.error(file, `Invalid \`lang\` "${lang}": use a BCP 47 tag such as en or pt-PT.`, at)
@@ -101,6 +102,7 @@ function validateMeta(
     ...(subtitle === undefined ? {} : { subtitle }),
     ...(description === undefined ? {} : { description }),
     ...(author === undefined ? {} : { author }),
+    ...(theme === undefined ? {} : { theme }),
   }
 }
 

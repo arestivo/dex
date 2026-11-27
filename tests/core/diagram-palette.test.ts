@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   DIAGRAM_COLOURS,
-  DIAGRAM_THEMES,
+  MODES,
   paletteTex,
   parseColourTokens,
 } from '../../src/core/diagrams/palette.ts'
@@ -24,11 +24,11 @@ describe('parseColourTokens', () => {
 })
 
 describe('diagram palettes', () => {
-  for (const theme of DIAGRAM_THEMES) {
-    it(`defines every Dex colour with the token values (${theme})`, () => {
-      const tex = paletteTex(tokens, theme)
+  for (const mode of MODES) {
+    it(`defines every Dex colour with the token values (${mode})`, () => {
+      const tex = paletteTex(tokens, mode)
       for (const [colour, token] of Object.entries(DIAGRAM_COLOURS)) {
-        const value = tokens.get(token)?.[theme]
+        const value = tokens.get(token)?.[mode]
         expect(value, `--${token}`).toMatch(/^[0-9A-F]{6}$/)
         expect(tex).toContain(`\\definecolor{${colour}}{HTML}{${value}}`)
       }
@@ -40,7 +40,7 @@ describe('diagram palettes', () => {
     expect(paletteTex(tokens, 'dark')).toContain('\\DexDarktrue')
   })
 
-  it('uses different values per theme', () => {
+  it('uses different values per mode', () => {
     expect(paletteTex(tokens, 'light')).toContain('{DexInk}{HTML}{1B2130}')
     expect(paletteTex(tokens, 'dark')).toContain('{DexInk}{HTML}{E4E7EE}')
   })

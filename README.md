@@ -77,7 +77,8 @@ Inside this repository, `pnpm dev`, `pnpm check:decks`, `pnpm build`… do the s
 
 - Writing decks, including TikZ diagrams: [docs/authoring.md](docs/authoring.md) (also `dex docs`)
 - Layouts: built-in ones in [layouts/](layouts/), each with a `layout.md`; local ones in a content folder's `layouts/`. Guide: [docs/layouts.md](docs/layouts.md) (`dex docs layouts` adds the list for a folder)
-- Agent skills installed by `dex init`: [scaffold/skills/](scaffold/skills/) (`author-deck`, `author-layout`, `migrate-remark-deck`)
+- Colour themes: built-in ones in [themes/](themes/); local ones in a content folder's `themes/`. Guide: [docs/themes.md](docs/themes.md) (`dex docs themes` adds the list for a folder)
+- Agent skills installed by `dex init`: [scaffold/skills/](scaffold/skills/) (`author-deck`, `author-layout`, `author-theme`, `migrate-remark-deck`)
 - Working on the engine (structure, commands, conventions, specs): [AGENTS.md](AGENTS.md)
 
 ## Viewer shortcuts
@@ -87,6 +88,6 @@ Inside this repository, `pnpm dev`, `pnpm check:decks`, `pnpm build`… do the s
 | `→` `↓` `Space` `PageDown` `n` | next slide |
 | `←` `↑` `Shift+Space` `PageUp` `p` | previous slide |
 | `Home` / `End` | first / last slide |
-| `d` | toggle light/dark theme |
+| `d` | toggle light/dark mode |
 
 Swipe left/right on touch screens. The 🔗 button copies a link to the current slide.

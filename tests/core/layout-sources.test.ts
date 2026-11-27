@@ -4,11 +4,13 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { formatDiagnostic } from '../../src/core/diagnostics.ts'
 import {
+  extendLayoutSet,
   type LayoutSource,
+  layoutsCss,
   loadLayoutSet,
   parseLayoutDocument,
 } from '../../src/core/layouts/load.ts'
-import { compileWorkspace } from '../../src/core/workspace.ts'
+import { compileWorkspace, loadSiteLayouts } from '../../src/core/workspace.ts'
 import { FIXTURES, PROJECT_ROOT } from '../helpers.ts'
 
 let root: string
@@ -100,6 +102,70 @@ describe('loadLayoutSet', () => {
   })
 })
 
+describe('extendLayoutSet', () => {
+  const extend = (deck: string) => {
+    const base = loadLayoutSet(root, SOURCES)
+    const set = extendLayoutSet(root, base.layouts, { dir: `decks/${deck}/layouts`, deck })
+    return { base, layouts: set.layouts, lines: set.diagnostics.items.map(formatDiagnostic) }
+  }
+
+  it('adds the deck layouts on top of the shared ones', () => {
+    layout('layouts', 'quote', '---\ndescription: A quote.\n---\n')
+    layout('decks/http/layouts', 'request', '---\ndescription: A request.\n---\n')
+    const { base, layouts, lines } = extend('http')
+    expect(lines).toEqual([])
+    expect([...layouts.keys()].sort()).toEqual(['default', 'quote', 'request'])
+    expect(layouts.get('request')).toMatchObject({
+      origin: 'deck',
+      deck: 'http',
+      file: 'decks/http/layouts/request/template.html',
+    })
+    expect(base.layouts.has('request')).toBe(false)
+  })
+
+  it('is silent when the deck has no layouts folder', () => {
+    const { layouts, lines } = extend('http')
+    expect(lines).toEqual([])
+    expect([...layouts.keys()]).toEqual(['default'])
+  })
+
+  it('rejects a deck layout that reuses a local name and keeps the local one', () => {
+    layout('layouts', 'quote', '---\ndescription: A quote.\n---\n')
+    layout('decks/http/layouts', 'quote', '---\ndescription: Mine.\n---\n')
+    const { layouts, lines } = extend('http')
+    expect(layouts.get('quote')?.origin).toBe('local')
+    expect(lines).toEqual([
+      'decks/http/layouts/quote/template.html error "quote" is a local layout (layouts/quote/): deck layouts cannot replace local ones. Rename this folder (e.g. decks/http/layouts/quote-custom/).',
+    ])
+  })
+
+  it('rejects a deck layout that reuses a built-in name', () => {
+    layout('decks/http/layouts', 'default', '---\ndescription: Mine.\n---\n')
+    const { layouts, lines } = extend('http')
+    expect(layouts.get('default')?.origin).toBe('built-in')
+    expect(lines).toEqual([
+      'decks/http/layouts/default/template.html error "default" is a built-in layout: deck layouts cannot replace built-in ones. Rename this folder (e.g. decks/http/layouts/default-custom/).',
+    ])
+  })
+
+  it("does not repeat the shared layouts' diagnostics", () => {
+    layout('layouts', 'bare')
+    layout('decks/http/layouts', 'request', '---\ndescription: A request.\n---\n')
+    const { base, lines } = extend('http')
+    expect(base.diagnostics.items).toHaveLength(1)
+    expect(lines).toEqual([])
+  })
+
+  it('checks deck layouts like other layouts', () => {
+    layout('decks/http/layouts', 'bare')
+    write('decks/http/layouts/Bad/template.html', '<slot></slot>')
+    expect(extend('http').lines).toEqual([
+      'decks/http/layouts/Bad error Invalid layout name "Bad": layout folders must match /^[a-z][a-z0-9-]*$/.',
+      'decks/http/layouts/bare/layout.md warning Layout "bare" has no layout.md: add one with a description and usage notes, so people and agents know when and how to use it.',
+    ])
+  })
+})
+
 describe('parseLayoutDocument', () => {
   it('reads the description and the body', () => {
     expect(
@@ -140,5 +206,20 @@ describe('compileWorkspace with local layouts', () => {
       decksDir: join(FIXTURES, 'clean', 'decks'),
     })
     expect([...result.layouts.values()].every((l) => l.origin === 'built-in')).toBe(true)
+  })
+})
+
+describe('site-wide layout styles', () => {
+  it('include every deck layout, each scoped to its deck', () => {
+    const { layouts, diagnostics } = loadSiteLayouts({ root: join(FIXTURES, 'local-layouts') })
+    expect(diagnostics.items).toEqual([])
+    const css = layoutsCss(layouts)
+    const one = css.indexOf('@scope (.deck[data-deck="one"] .slide[data-layout="example"])')
+    const two = css.indexOf('@scope (.deck[data-deck="two"] .slide[data-layout="example"])')
+    expect(css.indexOf('@scope (.slide[data-layout="quote"])')).toBeGreaterThan(-1)
+    expect(one).toBeGreaterThan(css.indexOf('@scope (.slide[data-layout="quote"])'))
+    expect(two).toBeGreaterThan(one)
+    expect(css.slice(one, two)).toContain('border-top')
+    expect(css.slice(two)).toContain('border-bottom')
   })
 })

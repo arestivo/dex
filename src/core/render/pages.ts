@@ -20,6 +20,7 @@ ${toHtml(slides)}
     description: deck.meta.description ?? deck.meta.subtitle,
     assets,
     body,
+    theme: deck.theme,
   })
 }
 
@@ -27,6 +28,8 @@ export interface IndexOptions {
   readonly title: string
   /** Builds the link to a deck, relative to the index page. */
   readonly deckHref: (slug: string) => string
+  /** The folder theme (`dex.yaml`, or `default`). */
+  readonly theme?: string
 }
 
 /** Renders the site index listing all decks, sorted by title. */
@@ -51,11 +54,15 @@ ${items.join('\n')}
   </ul>
 </main>`
 
-  return htmlDocument({ lang: 'en', title: options.title, assets, body })
+  return htmlDocument({ lang: 'en', title: options.title, assets, body, theme: options.theme })
 }
 
 /** Renders a page listing build diagnostics (used by the dev server). */
-export function renderErrorPage(diagnostics: readonly Diagnostic[], assets: PageAssets): string {
+export function renderErrorPage(
+  diagnostics: readonly Diagnostic[],
+  assets: PageAssets,
+  theme?: string,
+): string {
   const lines = diagnostics.map(
     (d) =>
       `<li class="diagnostics__item diagnostics__item--${d.severity}"><code>${escapeHtml(formatDiagnostic(d))}</code></li>`,
@@ -67,5 +74,5 @@ export function renderErrorPage(diagnostics: readonly Diagnostic[], assets: Page
 ${lines.join('\n')}
   </ul>
 </main>`
-  return htmlDocument({ lang: 'en', title: 'Deck errors', assets, body })
+  return htmlDocument({ lang: 'en', title: 'Deck errors', assets, body, theme })
 }

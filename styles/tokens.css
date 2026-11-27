@@ -1,7 +1,7 @@
 /*
  * Design tokens. Colours use light-dark(), resolved by `color-scheme`:
  * the OS preference by default, or the viewer's override via
- * <html data-theme="light|dark">.
+ * <html data-color-mode="light|dark">.
  *
  * Spacing inside slides is in `em`, so it scales with the slide.
  */
@@ -76,11 +76,11 @@
     --duration-slow: 400ms;
   }
 
-  :root[data-theme="light"] {
+  :root[data-color-mode="light"] {
     color-scheme: light;
   }
 
-  :root[data-theme="dark"] {
+  :root[data-color-mode="dark"] {
     color-scheme: dark;
   }
 }

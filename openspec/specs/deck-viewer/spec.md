@@ -85,17 +85,25 @@ The viewer SHALL show the current slide number and the total (e.g. `12 / 67`) an
 - **WHEN** slide 12 of 67 is shown
 - **THEN** the counter reads `12 / 67`
 
-### Requirement: Light and dark themes
+### Requirement: Light and dark modes
 
-The viewer SHALL follow the operating system's colour scheme by default. It SHALL provide a toggle (control and the `d` key) that overrides the scheme, and the override SHALL persist across visits.
+The viewer SHALL follow the operating system's colour scheme by default. It SHALL provide a toggle (control and the `d` key) that switches between light and dark mode, and the choice SHALL persist across visits. A choice saved by earlier versions of the viewer SHALL be kept. The mode is independent of the deck's colour theme.
 
 #### Scenario: System preference
-- **WHEN** the OS prefers dark mode and no override is stored
-- **THEN** the deck renders in the dark theme
+- **WHEN** the OS prefers dark mode and no choice is stored
+- **THEN** the deck renders in dark mode
 
 #### Scenario: Persisted override
-- **WHEN** the user toggles to light and reloads the page
-- **THEN** the deck renders in the light theme
+- **WHEN** the user toggles to light mode and reloads the page
+- **THEN** the deck renders in light mode
+
+#### Scenario: Choice saved by an earlier version
+- **WHEN** the browser holds a light/dark choice saved before the rename
+- **THEN** the deck renders in that mode and the choice is kept from then on
+
+#### Scenario: Toggle labelled as mode
+- **WHEN** a reader focuses the light/dark control
+- **THEN** its accessible name speaks of dark mode, not of a theme
 
 ### Requirement: Accessibility
 

@@ -1,29 +1,38 @@
 ---
 name: author-layout
-description: Create or change a local layout in this content folder's layouts/ (a reusable slide structure with its own template, style and usage notes). Use when slides keep repeating the same arrangement, or the user asks for a new kind of slide, a layout, or a template.
+description: Create or change a layout (a reusable slide structure with its own template, style and usage notes), either local in this content folder's layouts/ for every deck, or for one deck in decks/<slug>/layouts/. Use when slides keep repeating the same arrangement, or the user asks for a new kind of slide, a layout, or a template.
 metadata:
   generatedBy: dex
 ---
 
-# Create or change a local layout
+# Create or change a layout
 
-A layout decides where a slide's content goes and how it looks. Local layouts live in `layouts/<name>/` and are available to every deck in this folder.
+A layout decides where a slide's content goes and how it looks. There are two kinds you can make here:
+
+- **local layouts** in `layouts/<name>/`, available to every deck in this folder;
+- **deck layouts** in `decks/<slug>/layouts/<name>/`, available only to that deck.
 
 ## 1. Decide whether a layout is the right tool
 
-Run `dex docs layouts` first: it lists every layout already available (built-in and local), with what each is for.
+Run `dex docs layouts --deck <slug>` first (for the deck you are working on): it lists every layout that deck can already use (built-in, local and its own), with what each is for.
 
 Create a layout only for an arrangement that recurs, e.g. a quote with its source, a definition card, an exercise with a hint, or a code-versus-output comparison. For a single slide, use an existing layout, utility classes (see `dex docs`), or split the slide. Changing an existing local layout changes every slide that uses it: check where it is used first (`grep -rn "layout=<name>" decks/`).
 
-Local layouts cannot reuse a built-in name (`default`, `title`, `section`, `center`, `two-columns`).
+Then choose the kind:
+
+- **Local** when other decks could use it too. Shared layouts keep decks consistent, and this is the usual choice.
+- **Deck** when only this deck needs it (one case study, one talk's recurring figure), or when the deck should stay self-contained so it can be moved to another content folder with its layouts.
+
+Names can't clash with a wider layout: a local layout can't reuse a built-in name (`default`, `title`, `section`, `center`, `two-columns`), and a deck layout can't reuse a built-in or local name. Two decks may each have their own layout with the same name.
 
 ## 2. Create it
 
 ```sh
-dex new layout <name>
+dex new layout <name>                # local: layouts/<name>/
+dex new layout <name> --deck <slug>  # deck: decks/<slug>/layouts/<name>/
 ```
 
-This writes `layouts/<name>/template.html`, `style.css` and `layout.md` as a working starting point. Names are lowercase letters, digits and dashes.
+This writes `template.html`, `style.css` and `layout.md` as a working starting point. Names are lowercase letters, digits and dashes.
 
 ## 3. Write the template (`template.html`)
 
@@ -36,14 +45,14 @@ Read "Making layouts" in `dex docs layouts` for the details. The rules that matt
 
 ## 4. Style it (`style.css`)
 
-- `:scope` is the slide. Every selector only matches inside slides using this layout.
-- Use design tokens (`--color-*`, `--space-*`, `--radius-*`) instead of raw colours and sizes, so light and dark themes both work.
+- `:scope` is the slide. Every selector only matches inside slides using this layout (and, for a deck layout, only in that deck).
+- Use design tokens (`--color-*`, `--space-*`, `--radius-*`) instead of raw colours and sizes, so light and dark mode, and every colour theme, work.
 - Size in `em`: slides scale with the window, and `em` scales with them. `cqh`/`cqw` are percentages of the slide.
 - No `@import` and no `@layer` (Dex adds the layer). Don't style anything outside the slide.
 
 ## 5. Document it (`layout.md`)
 
-People and other agents learn the layout only from this file (shown by `dex docs layouts`):
+People and other agents learn the layout only from this file (shown by `dex docs layouts`, with `--deck <slug>` for deck layouts):
 
 - `description`: one line in the front matter, saying what the layout is for. `dex check` warns while it is empty.
 - `## When to use`: which slides it is for, and when another layout is better.
@@ -55,9 +64,9 @@ People and other agents learn the layout only from this file (shown by `dex docs
 1. Use the layout in at least one real slide.
 2. `dex check`: no errors and no warnings for the layout (template variables, CSS rules, `layout.md`).
 3. `dex fit`: slides using the layout fit at both sizes.
-4. `dex dev`: look at those slides in both themes (`d` toggles), with short and long content.
-5. `dex docs layouts`: the layout appears with its description and notes.
+4. `dex dev`: look at those slides in light and dark mode (`d` toggles), with short and long content.
+5. `dex docs layouts` (with `--deck <slug>` for a deck layout): the layout appears with its description and notes.
 
 ## 7. Report
 
-Tell the author the layout's name, what it is for, which slides now use it, and any slides you changed to use it.
+Tell the author the layout's name, whether it is local or for one deck, what it is for, which slides now use it, and any slides you changed to use it.

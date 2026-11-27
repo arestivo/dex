@@ -1,5 +1,7 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { formatDiagnostic } from '../../src/core/diagnostics.ts'
 import { compileWorkspace } from '../../src/core/workspace.ts'
 import { runDex as dex, FIXTURES, PROJECT_ROOT } from '../helpers.ts'
@@ -53,6 +55,57 @@ describe('compileWorkspace', () => {
     expect(result.diagnostics.map(formatDiagnostic)).toContain(
       'decks/ghost error No deck "ghost" (expected slides.md there).',
     )
+  })
+})
+
+describe('compileWorkspace with deck layouts', () => {
+  let root: string
+  const write = (path: string, text: string) => {
+    mkdirSync(join(root, path, '..'), { recursive: true })
+    writeFileSync(join(root, path), text)
+  }
+  const deck = (slug: string, layout: string) =>
+    write(
+      `decks/${slug}/slides.md`,
+      `---\ntitle: ${slug}\n---\n\n::slide{#one layout=${layout}}\n\n# One\n\nText.\n`,
+    )
+  const deckLayout = (slug: string, name: string) => {
+    write(`decks/${slug}/layouts/${name}/template.html`, '<slot name="title"></slot><slot></slot>')
+    write(`decks/${slug}/layouts/${name}/style.css`, ':scope { color: red }')
+    write(`decks/${slug}/layouts/${name}/layout.md`, '---\ndescription: Mine.\n---\n')
+  }
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'dex-deck-layouts-'))
+    deck('http', 'request')
+    deckLayout('http', 'request')
+    deck('css', 'request')
+  })
+  afterEach(() => rmSync(root, { recursive: true, force: true }))
+
+  it('lets a deck use its own layouts, and only that deck', async () => {
+    const result = await compileWorkspace({ root })
+    expect(result.decks.map((d) => [d.slug, d.slides[0]?.layout])).toEqual([['http', 'request']])
+    expect(result.diagnostics.map(formatDiagnostic)).toEqual([
+      `decks/css/slides.md:5 error [one] Unknown layout "request". Available: ${LAYOUTS}.`,
+    ])
+  })
+
+  it('does not report deck layout files as unused assets', async () => {
+    write('decks/http/assets/used.txt', 'x')
+    const result = await compileWorkspace({ root }, ['http'])
+    expect(result.diagnostics.map(formatDiagnostic)).toEqual([
+      'decks/http/assets/used.txt warning Asset is not used by any slide.',
+    ])
+  })
+
+  it('reports deck layout problems only for the decks being compiled', async () => {
+    deck('bad', 'default')
+    deckLayout('bad', 'title')
+    const all = await compileWorkspace({ root })
+    expect(all.diagnostics.map((d) => d.file)).toContain('decks/bad/layouts/title/template.html')
+    const http = await compileWorkspace({ root }, ['http'])
+    expect(http.diagnostics).toEqual([])
   })
 })
 

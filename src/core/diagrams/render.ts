@@ -1,5 +1,5 @@
 /**
- * Renders a deck's tikz blocks in both themes, through a cache in the
+ * Renders a deck's tikz blocks in both modes, through a cache in the
  * content folder (`.dex/cache/diagrams/`). TeX is only needed for blocks
  * whose renderings are not cached yet. I/O module: file system + TeX.
  */
@@ -14,7 +14,8 @@ import {
 } from 'node:fs'
 import { availableParallelism } from 'node:os'
 import { join, relative, sep } from 'node:path'
-import { DIAGRAM_THEMES, type DiagramTheme, paletteTex, parseColourTokens } from './palette.ts'
+import type { ModeColour } from '../model.ts'
+import { MODES, type Mode, paletteTex, parseColourTokens } from './palette.ts'
 import { compileTikz, type TexError, type TexJob, type TexResult } from './tex.ts'
 import { missingTexPrograms } from './toolchain.ts'
 import { WRAPPER_VERSION } from './wrapper.ts'
@@ -30,10 +31,14 @@ export interface DiagramRenderings {
 /** A rendered diagram, or why it could not be rendered. */
 export type DiagramOutcome = { readonly svg: DiagramRenderings } | { readonly error: TexError }
 
-/** Renders every block of one deck (results in block order). */
+/**
+ * Renders every block of one deck (results in block order). `colours` are the
+ * deck theme's token values (without `--`), on top of the engine's defaults.
+ */
 export type DiagramRenderer = (
   deck: string,
   sources: readonly string[],
+  colours?: ReadonlyMap<string, ModeColour>,
 ) => Promise<DiagramOutcome[]>
 
 export interface TexRendererOptions {
@@ -41,7 +46,7 @@ export interface TexRendererOptions {
   readonly root: string
   /** Decks folder (default `<root>/decks`). */
   readonly decksDir?: string
-  /** The CSS tokens the palettes come from. */
+  /** The CSS tokens the default palettes come from. */
   readonly tokensCss: string
   /** Replaces TeX (tests). */
   readonly compile?: (job: TexJob) => Promise<TexResult>
@@ -55,16 +60,27 @@ export function createTexRenderer(options: TexRendererOptions): DiagramRenderer 
   const decksDir = options.decksDir ?? join(root, 'decks')
   const compile = options.compile ?? compileTikz
   const tokens = parseColourTokens(options.tokensCss)
-  const palettes: Record<DiagramTheme, string> = {
-    light: paletteTex(tokens, 'light'),
-    dark: paletteTex(tokens, 'dark'),
+  // Palettes per theme, keyed by its colours: a theme that sets nothing gets
+  // exactly the default palettes (and so the same cache keys).
+  const palettes = new Map<string, Record<Mode, string>>()
+  const palettesFor = (colours: ReadonlyMap<string, ModeColour>): Record<Mode, string> => {
+    const id = JSON.stringify([...colours].sort(([a], [b]) => a.localeCompare(b)))
+    let found = palettes.get(id)
+    if (found === undefined) {
+      const merged = new Map(tokens)
+      for (const [name, colour] of colours) merged.set(name, colour)
+      found = { light: paletteTex(merged, 'light'), dark: paletteTex(merged, 'dark') }
+      palettes.set(id, found)
+    }
+    return found
   }
   const tikzDir = join(root, 'tikz')
   const cacheDir = join(root, CACHE_DIR)
   const limit = options.concurrency ?? Math.max(1, Math.floor(availableParallelism() / 2))
   let missing: string[] | undefined
 
-  return async (deck, sources) => {
+  return async (deck, sources, colours = new Map()) => {
+    const palette = palettesFor(colours)
     const deckPreamblePath = join(decksDir, deck, DECK_PREAMBLE)
     const deckPreamble = existsSync(deckPreamblePath)
       ? {
@@ -74,8 +90,8 @@ export function createTexRenderer(options: TexRendererOptions): DiagramRenderer 
       : undefined
     const shared = [
       WRAPPER_VERSION,
-      palettes.light,
-      palettes.dark,
+      palette.light,
+      palette.dark,
       ...folderFiles(tikzDir),
       deckPreamble?.path ?? '',
       deckPreamble?.content ?? '',
@@ -105,14 +121,14 @@ export function createTexRenderer(options: TexRendererOptions): DiagramRenderer 
         }
       }
 
-      const rendered: Partial<Record<DiagramTheme, string>> = {}
-      for (const theme of DIAGRAM_THEMES) {
-        const result = await compile({ source, palette: palettes[theme], tikzDir, deckPreamble })
+      const rendered: Partial<Record<Mode, string>> = {}
+      for (const mode of MODES) {
+        const result = await compile({ source, palette: palette[mode], tikzDir, deckPreamble })
         if ('error' in result) return result
-        rendered[theme] = normalise(result.svg)
+        rendered[mode] = normalise(result.svg)
       }
       mkdirSync(cacheDir, { recursive: true })
-      for (const theme of DIAGRAM_THEMES) writeAtomically(files[theme], rendered[theme] ?? '')
+      for (const mode of MODES) writeAtomically(files[mode], rendered[mode] ?? '')
       return { svg: { light: rendered.light ?? '', dark: rendered.dark ?? '' } }
     })
   }

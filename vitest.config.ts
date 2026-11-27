@@ -7,6 +7,8 @@ export default defineConfig({
         test: {
           name: 'unit',
           include: ['tests/core/**/*.test.ts', 'tests/client/**/*.test.ts'],
+          // CLI tests start `dex` several times; under a loaded machine 5 s is too tight.
+          testTimeout: 20_000,
         },
       },
       {

@@ -1,5 +1,5 @@
 /**
- * Compiles one tikz block for one theme: XeLaTeX → XDV → dvisvgm → SVG, in
+ * Compiles one tikz block for one mode: XeLaTeX → XDV → dvisvgm → SVG, in
  * an isolated temporary folder. This module does file-system and process
  * I/O; the rest of src/core/diagrams is pure.
  */
@@ -24,7 +24,7 @@ const TIMEOUT_MS = 30_000
 export interface TexJob {
   /** The block's source (one tikzpicture). */
   readonly source: string
-  /** `\ifDexDark` and the colours for this theme. */
+  /** `\ifDexDark` and the colours for this mode. */
   readonly palette: string
   /** Content folder's `tikz/` folder, copied in when it exists. */
   readonly tikzDir?: string | undefined

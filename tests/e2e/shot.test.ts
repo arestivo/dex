@@ -40,7 +40,7 @@ describe('dex shot', () => {
   it('saves every slide of a deck', async () => {
     const { code } = await runDex(folder, 'shot', 'demo')
     expect(code).toBe(0)
-    expect(readdirSync(join(folder, '.dex/shots/demo'))).toHaveLength(11 * 2)
+    expect(readdirSync(join(folder, '.dex/shots/demo'))).toHaveLength(12 * 2)
   }, 180_000)
 
   it('refuses unknown slides and decks, writing nothing', async () => {

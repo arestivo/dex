@@ -8,7 +8,7 @@ export interface ChromeHandlers {
   readonly previous: () => void
   readonly next: () => void
   readonly copyLink: () => void
-  readonly toggleTheme: () => void
+  readonly toggleMode: () => void
 }
 
 export interface Chrome {
@@ -30,8 +30,8 @@ export function createChrome(deck: HTMLElement, handlers: ChromeHandlers): Chrom
   const counter = element('span', 'viewer-controls__counter')
   const next = button('next', 'Next slide', handlers.next)
   const link = button('link', 'Copy link to this slide', handlers.copyLink)
-  const theme = button('theme', 'Dark theme', handlers.toggleTheme)
-  controls.append(previous, counter, next, link, theme)
+  const mode = button('mode', 'Dark mode', handlers.toggleMode)
+  controls.append(previous, counter, next, link, mode)
 
   const live = element('div', 'viewer-live visually-hidden', {
     'aria-live': 'polite',
@@ -60,7 +60,7 @@ export function createChrome(deck: HTMLElement, handlers: ChromeHandlers): Chrom
       toastTimer = window.setTimeout(() => toast.removeAttribute('data-visible'), TOAST_DURATION)
     },
     setDarkPressed(pressed) {
-      theme.setAttribute('aria-pressed', String(pressed))
+      mode.setAttribute('aria-pressed', String(pressed))
     },
   }
 }

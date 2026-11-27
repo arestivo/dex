@@ -40,8 +40,14 @@ describe('parseFrontMatter', () => {
   })
 
   it('reports unknown keys by name', () => {
-    const { messages } = parse('---\ntitle: T\ntheme: dark\n---\n')
-    expect(messages[0]).toMatch(/Unknown front matter key "theme"/)
+    const { messages } = parse('---\ntitle: T\ncolours: blue\n---\n')
+    expect(messages[0]).toMatch(/Unknown front matter key "colours"/)
+  })
+
+  it('accepts a theme', () => {
+    const { meta, messages } = parse('---\ntitle: T\ntheme: forest\n---\n')
+    expect(messages).toEqual([])
+    expect(meta?.theme).toBe('forest')
   })
 
   it('reports a missing or unclosed block', () => {

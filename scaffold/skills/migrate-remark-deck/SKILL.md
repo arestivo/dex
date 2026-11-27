@@ -25,7 +25,7 @@ Ask only if the source is missing or ambiguous.
 3. **Write `decks/<slug>/slides.md`** using the mapping below.
 4. **Validate**: run `dex check <slug>` and fix every error and warning. Repeat until clean.
 5. **Check fit**: run `dex fit <slug>` and fix every overflow (see "Making content fit" in `dex docs`). Repeat until clean.
-6. **Look at it**: run `dex dev` and open `/<slug>/`. Check the title slide, the index, images, tables and the densest slides, in both themes (`d` toggles).
+6. **Look at it**: run `dex dev` and open `/<slug>/`. Check the title slide, the index, images, tables and the densest slides, in light and dark mode (`d` toggles).
 7. **Report** to the user: the slide count, the judgement calls you made (splits, retitles, dropped constructs), anything you couldn't map, and any likely typos you noticed but did **not** fix.
 
 ## Mapping remark.js → Dex
@@ -63,5 +63,6 @@ Ask only if the source is missing or ambiguous.
 - **Ids are permanent**: once chosen and published they key deep links and discussions. Choose them carefully, and don't rename existing ones in later edits.
 - **Every image gets alt text** describing what it shows.
 - **16:9**: remark decks were 4:3, so expect some slides to need splitting or two columns.
+- **No theme.** Don't add `theme:` to the front matter, even if the remark deck had its own colours: the deck uses the folder's theme. Mention the original colours in your report, and the author decides.
 - **No new CSS for one slide.** Prefer layouts, utilities and splitting. If a pattern recurs across slides, create a local layout for it (see the `author-layout` skill) and mention it in your report.
 - **Don't run code formatters over decks or assets.** Markdown formatters can rewrite the YAML front matter and break the deck, and some (Biome 2.6) exhaust all memory on draw.io SVG exports.

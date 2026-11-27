@@ -3,7 +3,9 @@
  * engine (viewer code, styles, layouts); decks are read from, and the site
  * written to, the content locations given in the options.
  *
- * - `virtual:layouts.css`: scoped CSS of every layout in layouts/.
+ * - `virtual:layouts.css`: scoped CSS of every layout: built-in, local and
+ *   each deck's own.
+ * - `virtual:themes.css`: every colour theme, scoped to `:root[data-theme]`.
  * - dev: serves the index, deck pages and deck assets; reloads on changes.
  * - build: validates every deck, then emits the index, one page per deck
  *   and only the assets that slides reference, next to the client bundle.
@@ -13,7 +15,14 @@ import { readFile } from 'node:fs/promises'
 import type { ServerResponse } from 'node:http'
 import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import type { Plugin, ResolvedConfig, ViteDevServer } from 'vite'
-import { CLIENT_ENTRY, type ContentLocations, ENGINE_ROOT, LAYOUTS_DIR } from '../core/config.ts'
+import {
+  CLIENT_ENTRY,
+  type ContentLocations,
+  ENGINE_ROOT,
+  LAYOUTS_DIR,
+  LAYOUTS_FOLDER,
+  SETTINGS_FILE,
+} from '../core/config.ts'
 import {
   type Diagnostic,
   DiagnosticBag,
@@ -25,11 +34,16 @@ import { layoutsCss, STYLE_FILE } from '../core/layouts/load.ts'
 import { IDENTIFIER_PATTERN } from '../core/model.ts'
 import type { PageAssets } from '../core/render/html.ts'
 import { renderDeckPage, renderErrorPage, renderIndexPage } from '../core/render/pages.ts'
+import { THEME_FILE, themesCss } from '../core/themes/load.ts'
 import {
   compileDeckAt,
   compileWorkspace,
   findDecks,
+  loadDeckLayouts,
+  loadSiteLayouts,
+  loadThemeContext,
   loadWorkspaceLayouts,
+  loadWorkspaceThemes,
   type ResolvedWorkspace,
   resolveOptions,
   texRendererFor,
@@ -47,6 +61,8 @@ export interface DexPluginOptions {
 
 const VIRTUAL_CSS = 'virtual:layouts.css'
 const RESOLVED_CSS = `\0${VIRTUAL_CSS}`
+const VIRTUAL_THEMES = 'virtual:themes.css'
+const RESOLVED_THEMES = `\0${VIRTUAL_THEMES}`
 const APP_DIR = '_app'
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -115,14 +131,23 @@ export function dex(options: DexPluginOptions): Plugin {
     },
 
     resolveId(id) {
-      return id === VIRTUAL_CSS ? RESOLVED_CSS : undefined
+      if (id === VIRTUAL_CSS) return RESOLVED_CSS
+      return id === VIRTUAL_THEMES ? RESOLVED_THEMES : undefined
     },
 
     load(id) {
+      if (id === RESOLVED_THEMES) {
+        const { themes, diagnostics } = loadWorkspaceThemes(workspace)
+        report(diagnostics.items)
+        for (const theme of themes.values()) {
+          this.addWatchFile(resolve(workspace.root, theme.file))
+        }
+        return themesCss(themes.values())
+      }
       if (id !== RESOLVED_CSS) return undefined
-      const { layouts, diagnostics } = loadWorkspaceLayouts(workspace)
+      const { layouts, diagnostics } = loadSiteLayouts(workspace)
       report(diagnostics.items)
-      for (const layout of layouts.values()) {
+      for (const layout of layouts) {
         this.addWatchFile(join(dirname(resolve(workspace.root, layout.file)), STYLE_FILE))
       }
       return layoutsCss(layouts)
@@ -130,8 +155,22 @@ export function dex(options: DexPluginOptions): Plugin {
 
     hotUpdate({ file }) {
       const inLayouts =
-        isInside(workspace.layoutsDir, file) || isInside(workspace.localLayoutsDir, file)
+        isInside(workspace.layoutsDir, file) ||
+        isInside(workspace.localLayoutsDir, file) ||
+        isDeckLayoutFile(workspace.decksDir, file)
       const inDecks = isInside(workspace.decksDir, file)
+      const inThemes =
+        isInside(workspace.themesDir, file) || isInside(workspace.localThemesDir, file)
+      const isSettings = file === join(workspace.root, SETTINGS_FILE)
+
+      const themesModule = this.environment.moduleGraph.getModuleById(RESOLVED_THEMES)
+      if (inThemes && file.endsWith(THEME_FILE)) return themesModule ? [themesModule] : []
+      if (inThemes || isSettings) {
+        // theme.md, added/removed themes and dex.yaml change names or defaults.
+        if (themesModule) this.environment.moduleGraph.invalidateModule(themesModule)
+        this.environment.hot.send({ type: 'full-reload' })
+        return []
+      }
       if (!inLayouts && !inDecks) return undefined
 
       const css = this.environment.moduleGraph.getModuleById(RESOLVED_CSS)
@@ -146,7 +185,12 @@ export function dex(options: DexPluginOptions): Plugin {
     configureServer(server) {
       // Decks and local layouts usually live outside the engine root, which is
       // all Vite watches by default.
-      server.watcher.add([workspace.decksDir, workspace.localLayoutsDir])
+      server.watcher.add([
+        workspace.decksDir,
+        workspace.localLayoutsDir,
+        workspace.localThemesDir,
+        join(workspace.root, SETTINGS_FILE),
+      ])
       return () => {
         server.middlewares.use((req, res, next) => {
           handleDevRequest(server, req.url ?? '/', res).then(
@@ -197,6 +241,7 @@ export function dex(options: DexPluginOptions): Plugin {
         source: renderIndexPage(built.decks, assetsFrom(''), {
           title: siteTitle,
           deckHref: (slug) => `${slug}/`,
+          theme: built.theme,
         }),
       })
 
@@ -239,6 +284,7 @@ export function dex(options: DexPluginOptions): Plugin {
         renderIndexPage(result.decks, devAssets, {
           title: siteTitle,
           deckHref: (slug) => `/${slug}/`,
+          theme: result.theme,
         }),
       )
     }
@@ -256,12 +302,24 @@ export function dex(options: DexPluginOptions): Plugin {
     }
 
     if (rest.join('/') === '' || rest.join('/') === 'index.html') {
-      const { layouts, diagnostics: layoutDiagnostics } = loadWorkspaceLayouts(workspace)
-      const { deck, diagnostics } = await compileDeckAt(location, layouts, diagramRenderer)
-      const all = [...layoutDiagnostics.items, ...diagnostics.items]
+      const base = loadWorkspaceLayouts(workspace)
+      const own = loadDeckLayouts(workspace, location, base.layouts)
+      const themes = loadThemeContext(workspace)
+      const { deck, diagnostics } = await compileDeckAt(
+        location,
+        own.layouts,
+        diagramRenderer,
+        themes,
+      )
+      const all = [
+        ...base.diagnostics.items,
+        ...own.diagnostics.items,
+        ...themes.diagnostics.items,
+        ...diagnostics.items,
+      ]
       report(all)
       if (deck === undefined || hasErrors(all))
-        return html(renderErrorPage(sortDiagnostics(all), devAssets), 500)
+        return html(renderErrorPage(sortDiagnostics(all), devAssets, themes.choice.fallback), 500)
       return html(renderDeckPage(deck, devAssets))
     }
 
@@ -275,6 +333,12 @@ export function dex(options: DexPluginOptions): Plugin {
     createReadStream(file).pipe(res)
     return true
   }
+}
+
+/** Whether `file` is inside a deck's own layouts folder (`<decks>/<slug>/layouts/`). */
+function isDeckLayoutFile(decksDir: string, file: string): boolean {
+  const [, folder, ...rest] = relative(decksDir, file).split(sep)
+  return isInside(decksDir, file) && folder === LAYOUTS_FOLDER && rest.length > 0
 }
 
 function isInside(dir: string, file: string): boolean {

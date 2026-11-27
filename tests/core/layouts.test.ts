@@ -131,6 +131,22 @@ describe('scoped layout styles', () => {
     )
   })
 
+  it('scopes a deck layout to its deck', () => {
+    expect(scopeLayoutCss('example', ':scope { color: red }', 'http')).toBe(
+      '@layer layouts {\n  @scope (.deck[data-deck="http"] .slide[data-layout="example"]) {\n    :scope { color: red }\n  }\n}\n',
+    )
+    const layout = createLayout(
+      'example',
+      'decks/http/layouts/example/template.html',
+      '<slot></slot>',
+      'h1 { color: red }',
+      new DiagnosticBag(),
+      { origin: 'deck', deck: 'http' },
+    )
+    expect(layout).toMatchObject({ origin: 'deck', deck: 'http' })
+    expect(layout.css).toContain('@scope (.deck[data-deck="http"] .slide[data-layout="example"])')
+  })
+
   it('emits nothing for an empty stylesheet', () => {
     expect(scopeLayoutCss('x', '  \n')).toBe('')
   })

@@ -7,7 +7,7 @@ Defines the source format authors (human or agent) use to write a slide deck: ho
 
 ### Requirement: Deck folder
 
-Each deck SHALL be a folder `decks/<slug>/` inside the content folder, containing a `slides.md` file. `<slug>` MUST match `^[a-z][a-z0-9-]*$`. Files the deck references (images, downloads) SHALL live under `decks/<slug>/assets/`.
+Each deck SHALL be a folder `decks/<slug>/` inside the content folder, containing a `slides.md` file. `<slug>` MUST match `^[a-z][a-z0-9-]*$`. Files the deck references (images, downloads) SHALL live under `decks/<slug>/assets/`. Layouts only that deck uses MAY live under `decks/<slug>/layouts/` (see slide-layouts).
 
 #### Scenario: Valid deck folder
 - **WHEN** the content folder contains `decks/http/slides.md`
@@ -25,9 +25,13 @@ Each deck SHALL be a folder `decks/<slug>/` inside the content folder, containin
 - **WHEN** the content folder has no `decks/` folder
 - **THEN** the check reports an error saying where it looked and how to select another content folder
 
+#### Scenario: Deck layouts are not assets
+- **WHEN** a deck has `decks/http/layouts/request/`
+- **THEN** its files are not reported as unused assets and are not copied to the output as deck files
+
 ### Requirement: Deck front matter
 
-`slides.md` SHALL start with a YAML front matter block delimited by `---` lines. `title` is required. `subtitle`, `author` (with `name` and optional `url`), `lang` (BCP 47, default `en`) and `description` are optional. Any other key SHALL be an error.
+`slides.md` SHALL start with a YAML front matter block delimited by `---` lines. `title` is required. `subtitle`, `author` (with `name` and optional `url`), `lang` (BCP 47, default `en`), `description` and `theme` (the name of a colour theme, see deck-themes) are optional. Any other key SHALL be an error.
 
 #### Scenario: Minimal front matter
 - **WHEN** the front matter contains only `title: HTTP`
@@ -38,8 +42,12 @@ Each deck SHALL be a folder `decks/<slug>/` inside the content folder, containin
 - **THEN** the check reports an error at the front matter
 
 #### Scenario: Unknown key
-- **WHEN** the front matter contains `theme: dark`
-- **THEN** the check reports an error naming the unknown key `theme`
+- **WHEN** the front matter contains `colours: blue`
+- **THEN** the check reports an error naming the unknown key `colours`
+
+#### Scenario: Theme
+- **WHEN** the front matter contains `theme: forest`
+- **THEN** the deck is valid and uses the `forest` theme
 
 ### Requirement: Slide separation
 

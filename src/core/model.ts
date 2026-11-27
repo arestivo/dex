@@ -9,6 +9,35 @@ export const IDENTIFIER_PATTERN = /^[a-z][a-z0-9-]*$/
 
 export const DEFAULT_LAYOUT = 'default'
 
+/** The theme used when neither the deck nor `dex.yaml` names one: today's colours. */
+export const DEFAULT_THEME = 'default'
+
+/** Where a theme comes from: the engine or the content folder's `themes/`. */
+export type ThemeOrigin = 'built-in' | 'local'
+
+/** One colour in both modes: six-digit uppercase hex, without `#`. */
+export interface ModeColour {
+  readonly light: string
+  readonly dark: string
+}
+
+export interface Theme {
+  readonly name: string
+  readonly origin: ThemeOrigin
+  /** `theme.css`, relative to the content folder (for diagnostics). */
+  readonly file: string
+  /** One line from `theme.md`'s front matter; `''` when missing. */
+  readonly description: string
+  /** Body of `theme.md`; `undefined` when there is no `theme.md`. */
+  readonly notes: string | undefined
+  /** The tokens this theme sets (without `--`); others keep the default values. */
+  readonly colours: ReadonlyMap<string, ModeColour>
+  /** Line of each token in `theme.css`, for diagnostics. */
+  readonly lines: ReadonlyMap<string, number>
+  /** The theme's CSS, scoped to `:root[data-theme="<name>"]`. */
+  readonly css: string
+}
+
 export interface Author {
   readonly name: string
   readonly url?: string
@@ -21,15 +50,19 @@ export interface DeckMeta {
   readonly description?: string
   readonly author?: Author
   readonly lang: string
+  /** The colour theme named in the front matter, if any. */
+  readonly theme?: string
 }
 
-/** A layout loaded from `layouts/<name>/`. */
-/** Where a layout comes from: the engine, or the content folder's `layouts/`. */
-export type LayoutOrigin = 'built-in' | 'local'
+/** Where a layout comes from: the engine, the content folder's layouts/, or one deck's layouts/. */
+export type LayoutOrigin = 'built-in' | 'local' | 'deck'
 
+/** A layout loaded from `layouts/<name>/` (engine, content folder or deck). */
 export interface Layout {
   readonly name: string
   readonly origin: LayoutOrigin
+  /** The deck a `deck` layout belongs to (its slug). */
+  readonly deck?: string
   /** Template file, relative to the content folder (for diagnostics). */
   readonly file: string
   /** One line from `layout.md`'s front matter; `''` when missing. */
@@ -60,6 +93,8 @@ export interface CompiledDeck {
   readonly slug: string
   readonly meta: DeckMeta
   readonly slides: readonly RenderedSlide[]
+  /** The colour theme the deck uses (front matter, else `dex.yaml`, else `default`). */
+  readonly theme: string
   /** Asset paths (relative to the deck folder) referenced by the slides. */
   readonly assets: ReadonlySet<string>
 }

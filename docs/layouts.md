@@ -1,15 +1,21 @@
 # Making layouts
 
-A layout decides where a slide's content goes and how it looks. It is a folder with an HTML template, an optional stylesheet and usage notes, and adding one needs no code. To see the layouts you can already use, run `dex docs layouts`.
+A layout decides where a slide's content goes and how it looks. It is a folder with an HTML template, an optional stylesheet and usage notes, and adding one needs no code. To see the layouts you can already use, run `dex docs layouts` (add `--deck <slug>` to include that deck's own layouts).
 
-Layouts live in two places:
+Layouts live in three places:
 
-- **Local layouts**: `layouts/<name>/` in a content folder, next to `decks/`. They are available to every deck in that folder. This is the usual way to add a layout.
 - **Built-in layouts**: `layouts/<name>/` in the Dex engine, available in every content folder. Adding or changing one is a change to the engine.
+- **Local layouts**: `layouts/<name>/` in a content folder, next to `decks/`. They are available to every deck in that folder.
+- **Deck layouts**: `decks/<slug>/layouts/<name>/`, available only to that deck.
 
-A local layout cannot reuse a built-in layout's name (`dex check` reports it). Pick a new name instead.
+Which one to make:
 
-The quickest start is `dex new layout <name>`, which creates a working local layout to edit:
+- a **local layout** when several decks could use it, so the decks stay consistent (the usual choice);
+- a **deck layout** when only one talk needs it (say, the arrangement of one case study), or when the deck folder should be self-contained, so it can be moved to another content folder with its layouts.
+
+Names must not clash with a wider layout: a local layout can't reuse a built-in name, and a deck layout can't reuse a built-in or local name (`dex check` reports it, and the wider layout is used). Pick a new name instead. Two decks may each have a deck layout with the same name: each deck gets its own.
+
+The quickest start is `dex new layout <name>`, which creates a working local layout to edit (`dex new layout <name> --deck <slug>` creates a deck layout instead, in `decks/<slug>/layouts/<name>/`):
 
 ```text
 layouts/
@@ -88,11 +94,12 @@ So in `style.css`:
   }
   ```
 
-- use the design tokens from the engine's `styles/tokens.css` (`--color-*`, `--space-*`, `--radius-*`) rather than raw values, so both themes work;
+- use the design tokens from the engine's `styles/tokens.css` (`--color-*`, `--space-*`, `--radius-*`) rather than raw values, so light and dark mode (and every colour theme) work;
 - size things in `em` so they scale with the slide;
 - the slide is a CSS grid with one column (`grid-template-rows` is up to you) and a size container, so `cqh`/`cqw` are percentages of the slide;
 - `@import` and `@layer` are not allowed: the wrapper adds the layer;
-- layout styles beat component styles (callouts, code...), and utility classes beat layout styles.
+- layout styles beat component styles (callouts, code...), and utility classes beat layout styles;
+- a deck layout's styles are also limited to its deck (the scope is `.deck[data-deck="<slug>"] .slide[data-layout="<name>"]`), so same-named deck layouts in two decks never affect each other. You write the file the same way.
 
 ## layout.md
 
@@ -123,10 +130,10 @@ For a single memorable quotation. Not for long passages.
 
 ## Checklist for a new layout
 
-1. Run `dex new layout <name>` (or create `layouts/<name>/template.html` by hand), with a leading comment listing its slots.
+1. Decide whether it is a local or a deck layout (see above). Run `dex new layout <name>`, or `dex new layout <name> --deck <slug>` (or create `template.html` by hand), with a leading comment listing its slots.
 2. Edit `template.html` and `style.css`.
 3. Fill in `layout.md`: the description, when to use it, the slots, and an example.
 4. Use it in a deck and run `dex check` (template errors such as unknown variables show up here).
-5. Look at it with `dex dev`, in both themes (`d` toggles the theme).
+5. Look at it with `dex dev`, in light and dark mode (`d` toggles).
 6. Run `dex fit` if the layout changes how much content fits.
-7. Check that `dex docs layouts` lists it with its description and notes.
+7. Check that `dex docs layouts` (with `--deck <slug>` for a deck layout) lists it with its description and notes.

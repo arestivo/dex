@@ -1,8 +1,8 @@
 /// <reference lib="dom" />
 /**
- * `dex shot <slug> [id...]`: saves PNG images of slides, in the light and
- * the dark theme, so people and agents can look at what they made.
- * Images go to `<folder>/.dex/shots/<slug>/<id>-<theme>.png`.
+ * `dex shot <slug> [id...]`: saves PNG images of slides, in light and dark
+ * mode, so people and agents can look at what they made.
+ * Images go to `<folder>/.dex/shots/<slug>/<id>-<mode>.png`.
  * Returns the exit code.
  */
 import { mkdirSync } from 'node:fs'
@@ -13,12 +13,12 @@ import { buildSite, startPreview } from '../build/site.ts'
 import type { ContentLocations } from '../core/config.ts'
 import { formatDiagnostic, hasErrors, sortDiagnostics } from '../core/diagnostics.ts'
 import { compileWorkspace } from '../core/workspace.ts'
-import { THEME_STORAGE_KEY } from '../shared/constants.ts'
+import { MODE_STORAGE_KEY } from '../shared/constants.ts'
 import { findChromium } from './browser.ts'
 
 export const SHOTS_DIR = join('.dex', 'shots')
 const VIEWPORT = { width: 1280, height: 720 } as const
-const THEMES = ['light', 'dark'] as const
+const MODES = ['light', 'dark'] as const
 
 export async function runShot(content: ContentLocations, args: readonly string[]): Promise<number> {
   const [slug, ...ids] = args
@@ -58,12 +58,12 @@ export async function runShot(content: ContentLocations, args: readonly string[]
   mkdirSync(dir, { recursive: true })
   const browser = await chromium.launch({ executablePath: findChromium() })
   try {
-    for (const theme of THEMES) {
-      const context = await browser.newContext({ viewport: VIEWPORT, colorScheme: theme })
-      // Same as the viewer's toggle: an explicit theme, applied before first paint.
+    for (const mode of MODES) {
+      const context = await browser.newContext({ viewport: VIEWPORT, colorScheme: mode })
+      // Same as the viewer's toggle: an explicit mode, applied before first paint.
       await context.addInitScript(([key, value]) => localStorage.setItem(key, value), [
-        THEME_STORAGE_KEY,
-        theme,
+        MODE_STORAGE_KEY,
+        mode,
       ] as const)
       const page = await context.newPage()
       await page.goto(new URL(`${slug}/#${targets[0]}`, base).href)
@@ -77,7 +77,7 @@ export async function runShot(content: ContentLocations, args: readonly string[]
           await document.fonts.ready
           await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
         }, id)
-        const file = join(dir, `${id}-${theme}.png`)
+        const file = join(dir, `${id}-${mode}.png`)
         await page.locator('.slide[data-current]').screenshot({ path: file })
         console.log(relative(content.root, file))
       }

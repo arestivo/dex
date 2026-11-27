@@ -1,0 +1,19 @@
+/* slate: cool blue-grey neutrals with an indigo accent. */
+:root {
+  --color-bg: light-dark(#ffffff, #0f141b);
+  --color-page: light-dark(#e8ecf1, #080b10);
+  --color-surface: light-dark(#f1f4f8, #18202a);
+  --color-text: light-dark(#1a2230, #e2e8f0);
+  --color-muted: light-dark(#556070, #9aa7b8);
+  --color-border: light-dark(#d3dae3, #2a3442);
+  --color-accent: light-dark(#4f46e5, #a5b4fc);
+  --color-highlight: light-dark(#fef3c7, #4a3b06);
+  --color-inverse-bg: light-dark(#334155, #1e293b);
+  --color-inverse-text: #f1f5f9;
+  --color-inverse-muted: #b6c2d3;
+  --color-inverse-link: #c7d2fe;
+  --tone-info: light-dark(#4338ca, #a5b4fc);
+  --tone-info-bg: light-dark(#eef0fe, #1c1f3d);
+  --code-bg: light-dark(#f5f7fa, #0b1016);
+  --code-inline-bg: light-dark(#eceff4, #1f2733);
+}

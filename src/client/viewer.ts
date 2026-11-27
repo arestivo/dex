@@ -9,8 +9,8 @@
 import { createChrome } from './chrome.ts'
 import { trackIdle } from './idle.ts'
 import { type Action, listenForKeys } from './keyboard.ts'
+import { currentMode, onSystemModeChange, toggleMode } from './mode.ts'
 import { fragmentFor, resolveFragment } from './router.ts'
-import { currentTheme, onSystemThemeChange, toggleTheme } from './theme.ts'
 import { listenForSwipes } from './touch.ts'
 
 export function startViewer(deck: HTMLElement): void {
@@ -23,7 +23,7 @@ export function startViewer(deck: HTMLElement): void {
     previous: () => go(current - 1),
     next: () => go(current + 1),
     copyLink,
-    toggleTheme: switchTheme,
+    toggleMode: switchMode,
   })
 
   function show(index: number, announce = true): void {
@@ -48,9 +48,9 @@ export function startViewer(deck: HTMLElement): void {
     if (!canonical) history.replaceState(history.state, '', fragmentFor(ids[index] as string))
   }
 
-  function switchTheme(): void {
-    toggleTheme()
-    chrome.setDarkPressed(currentTheme() === 'dark')
+  function switchMode(): void {
+    toggleMode()
+    chrome.setDarkPressed(currentMode() === 'dark')
   }
 
   async function copyLink(): Promise<void> {
@@ -68,16 +68,16 @@ export function startViewer(deck: HTMLElement): void {
     previous: () => go(current - 1),
     first: () => go(0),
     last: () => go(slides.length - 1),
-    'toggle-theme': switchTheme,
+    'toggle-mode': switchMode,
   }
 
   deck.dataset.mode = 'present'
   syncWithUrl(false)
-  chrome.setDarkPressed(currentTheme() === 'dark')
+  chrome.setDarkPressed(currentMode() === 'dark')
 
   window.addEventListener('hashchange', () => syncWithUrl(true))
   listenForKeys((action) => actions[action]())
   listenForSwipes(deck, (direction) => (direction === 'left' ? actions.next() : actions.previous()))
-  onSystemThemeChange(() => chrome.setDarkPressed(currentTheme() === 'dark'))
+  onSystemModeChange(() => chrome.setDarkPressed(currentMode() === 'dark'))
   trackIdle(deck)
 }

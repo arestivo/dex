@@ -24,6 +24,8 @@ This is the complete reference for the deck format. Each deck is one Markdown fi
       slides.md         ← the deck
       assets/           ← images and other files the deck uses
         request.svg
+  themes/               ← local colour themes (optional, see `dex docs themes`)
+  dex.yaml              ← folder settings (optional): `theme: <name>`
   dist/                 ← `dex build` output (or --dist <dir>)
 ```
 
@@ -44,10 +46,13 @@ author:                          # or just: author: Ana Silva
   name: Ana Silva
   url: https://example.org/~ana
 lang: en                         # BCP 47; default en
+theme: forest                    # colour theme; default: the folder's
 ---
 ```
 
 Any other key is an error.
+
+**Theme.** `theme` picks the deck's colours (light and dark versions). Without it, the deck uses the theme in the content folder's `dex.yaml` (`theme: <name>`), or `default`. `dex docs themes` lists the themes, and explains how to make one. The theme is the author's choice: keep it as it is unless asked to change it.
 
 ## Slides
 
@@ -120,7 +125,7 @@ Both send requests, but:
 ::slide{#title layout=title}
 ```
 
-Besides the built-in layouts, a content folder can define its own in `layouts/<name>/`: `dex new layout <name>` creates one, and `dex docs layouts` explains how they work.
+Besides the built-in layouts, a content folder can define its own in `layouts/<name>/`, and a deck can have layouts only it uses in `decks/<slug>/layouts/<name>/`. `dex new layout <name> [--deck <slug>]` creates one, and `dex docs layouts [--deck <slug>]` lists them and explains how they work.
 
 ## Content
 
@@ -128,7 +133,7 @@ Standard CommonMark plus GitHub extensions: **bold**, *italic*, `code`, lists, o
 
 Inline HTML is allowed (`<small>`, `<br>`, `<kbd>`, `<img ... style="height: 30cqh">`...). Prefer Markdown and directives, and use HTML only for what they can't express.
 
-Fenced code blocks with a language are highlighted at build time, in both themes:
+Fenced code blocks with a language are highlighted at build time, for light and dark mode:
 
 ````markdown
 ```php
@@ -195,7 +200,7 @@ Right
 
 ## Diagrams
 
-Draw diagrams with [TikZ](https://tikz.dev/) in a fenced `tikz` block holding exactly one `tikzpicture`. Dex renders it to an SVG figure inside the slide, once for the light theme and once for the dark one, and shows the version matching the current theme. Always describe the diagram in `alt`, for screen readers:
+Draw diagrams with [TikZ](https://tikz.dev/) in a fenced `tikz` block holding exactly one `tikzpicture`. Dex renders it to an SVG figure inside the slide, once for light mode and once for dark mode, and shows the version matching the current mode. Always describe the diagram in `alt`, for screen readers:
 
 ````markdown
 ::slide{#agent-loop}
@@ -214,19 +219,19 @@ Draw diagrams with [TikZ](https://tikz.dev/) in a fenced `tikz` block holding ex
 ```
 ````
 
-**Colours.** Use the slide colours, so diagrams match the slides in both themes:
+**Colours.** Use the slide colours, so diagrams match the slides in light and dark mode:
 
 | Colour | Use |
 | --- | --- |
 | `DexInk`, `DexMuted` | text and lines; secondary text and lines |
 | `DexPaper`, `DexSurface`, `DexBorder` | slide background; neutral fills; outlines |
 | `DexAccent`, `DexAccentSoft` | emphasis; its soft fill |
-| `DexInverse`, `DexInverseText` | dark fills with light text (and the reverse in the dark theme) |
+| `DexInverse`, `DexInverseText` | dark fills with light text (and the reverse in dark mode) |
 | `DexInfo`, `DexWarning`, `DexError`, `DexSuccess`, `DexExample` | meaning, as in callouts; each has a `…Soft` fill (`DexWarningSoft`…) |
 
 **Tints: mix with `DexPaper`, not white.** In TikZ, `DexAccent!30` means 30% accent and 70% *white*. On a light slide that is a pale tint; on a dark slide it turns grey. Mix with the slide background instead, `DexAccent!30!DexPaper`, which gives a pale tint on light slides and a deep one on dark slides. Likewise, prefer `DexInk`/`DexPaper` to `black`/`white`.
 
-To use colours of your own, give each theme its value with `\ifDexDark`, usually in a preamble:
+To use colours of your own, give each mode its value with `\ifDexDark`, usually in a preamble:
 
 ```latex
 \ifDexDark
@@ -270,7 +275,7 @@ The TikZ libraries `arrows.meta`, `positioning`, `calc`, `fit`, `backgrounds` an
 
 **Cache.** Rendered diagrams are stored in `.dex/cache/`. Commit that folder: building then needs TeX only for new or changed diagrams, and `dex check` says when TeX is missing.
 
-**Look at them.** `dex shot <deck> <slide-id>` saves the slide as an image in both themes (`.dex/shots/<deck>/<slide-id>-light.png` and `-dark.png`). Check that labels fit their boxes, arrows don't cross boxes, and both themes read well.
+**Look at them.** `dex shot <deck> <slide-id>` saves the slide as an image in light and dark mode (`.dex/shots/<deck>/<slide-id>-light.png` and `-dark.png`). Check that labels fit their boxes, arrows don't cross boxes, and both modes read well.
 
 ## Utility classes
 

@@ -1,0 +1,8 @@
+/* A test theme: teal accent, deep blue inverse slides. */
+:root {
+  --color-accent: light-dark(#0b6e70, #5fd4d6);
+  --color-inverse-bg: light-dark(#0c2a3a, #10364a);
+  --color-inverse-text: #f3f5fa;
+  --tone-info: light-dark(#0b6e70, #5fd4d6);
+  --tone-info-bg: light-dark(#e6f4f4, #0f2a2b);
+}

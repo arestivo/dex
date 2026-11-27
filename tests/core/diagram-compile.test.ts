@@ -22,7 +22,7 @@ describe('diagram figures', () => {
     expect(html).not.toContain("width='141.28pt'")
   })
 
-  it('gives every figure and theme its own ids', async () => {
+  it('gives every figure and mode its own ids', async () => {
     const [html = ''] = await slidesHtml(slide('loop', `${tikz()}\n\n${tikz()}`), {
       renderDiagrams: ok,
     })
