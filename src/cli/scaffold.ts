@@ -31,6 +31,8 @@ const AGENTS_FILE = 'AGENTS.md'
 const CLAUDE_FILE = 'CLAUDE.md'
 const CLAUDE_IMPORT = '@AGENTS.md'
 const GITIGNORE_FILE = '.gitignore'
+/** Screenshots from `dex shot` (see src/cli/shot.ts). */
+const SHOTS_FOLDER = '.dex/shots'
 const SKILLS_DIR = join('.agents', 'skills')
 const SKILL_LINKS_DIR = join('.claude', 'skills')
 const SKILL_FILE = 'SKILL.md'
@@ -219,26 +221,35 @@ function planClaudeFile(root: string): PlannedChange {
 }
 
 function planGitignore(content: ContentLocations): PlannedChange {
-  const rel = relative(content.root, content.outDir).split(sep).join('/')
-  if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) {
-    return {
-      path: GITIGNORE_FILE,
-      kind: 'skipped',
-      detail: 'the output folder is outside the content folder',
-      managed: false,
-    }
-  }
+  // Generated, per-machine output. The diagram cache (.dex/cache/) is meant to
+  // be committed, so it is never ignored.
+  const wanted = [SHOTS_FOLDER]
+  const output = relative(content.root, content.outDir).split(sep).join('/')
+  const outputInside = output !== '' && !output.startsWith('..') && !isAbsolute(output)
+  if (outputInside) wanted.unshift(output)
+
   const file = join(content.root, GITIGNORE_FILE)
   const existing = readIfExists(file)
-  const patterns = new Set([rel, `${rel}/`, `/${rel}`, `/${rel}/`])
-  const ignored = existing?.split(/\r?\n/).some((line) => patterns.has(line.trim())) ?? false
-  if (ignored) return fileChange(GITIGNORE_FILE, file, existing, existing ?? '', false)
-  const entry = `/${rel}/\n`
+  const lines = new Set(existing?.split(/\r?\n/).map((line) => line.trim()) ?? [])
+  const missing = wanted.filter(
+    (path) => ![path, `${path}/`, `/${path}`, `/${path}/`].some((p) => lines.has(p)),
+  )
+  const detail = outputInside ? undefined : 'the output folder is outside the content folder'
+  if (missing.length === 0) {
+    return {
+      ...fileChange(GITIGNORE_FILE, file, existing, existing ?? '', false),
+      ...(detail ? { detail } : {}),
+    }
+  }
+  const entries = missing.map((path) => `/${path}/\n`).join('')
   const desired =
     existing === undefined || existing === ''
-      ? entry
-      : `${existing.endsWith('\n') ? existing : `${existing}\n`}${entry}`
-  return fileChange(GITIGNORE_FILE, file, existing, desired, false)
+      ? entries
+      : `${existing.endsWith('\n') ? existing : `${existing}\n`}${entries}`
+  return {
+    ...fileChange(GITIGNORE_FILE, file, existing, desired, false),
+    ...(detail ? { detail } : {}),
+  }
 }
 
 function planSkills(root: string, skills: readonly Skill[]): PlannedChange[] {

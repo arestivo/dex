@@ -60,10 +60,12 @@ src/core/                  build-time engine: pure TypeScript, no Vite
   render/                    HTML pages (deck, index, error)
   compile.ts                 one deck → rendered slides + diagnostics
   workspace.ts               file-system access: find + compile decks
+  diagrams/                  ```tikz: block checks, palettes from tokens.css, figure markup (pure);
+                             tex.ts (XeLaTeX -> dvisvgm), render.ts (cache in .dex/cache/) do I/O
 src/build/vite-plugin.ts   Vite plugin: dev middleware, build emission, layouts CSS
 src/build/site.ts          dev server / build / preview for a content folder
 src/client/                browser viewer (framework-free TS modules)
-src/cli/                   main.ts (the `dex` command), init.ts + scaffold.ts, new.ts, docs.ts, check.ts, fit.ts, browser.ts
+src/cli/                   main.ts (the `dex` command), init.ts + scaffold.ts, new.ts, docs.ts, check.ts, fit.ts, shot.ts, browser.ts
 src/shared/                constants used by both Node and browser code
 styles/                    global CSS (see "CSS" below)
 docs/                      authoring.md (the format), layouts.md (making layouts): printed by `dex docs`
@@ -77,7 +79,7 @@ openspec/                  specs and changes (see above)
 
 ## Commands
 
-Use the Nix dev shell (`nix develop`) for Node 24, pnpm and Chromium.
+Use the Nix dev shell (`nix develop`) for Node 24, pnpm, Chromium and TeX (XeLaTeX, dvisvgm, the TikZ packages and Fira). The README lists what other platforms need.
 
 **The `dex` command** (`src/cli/main.ts`) runs on a content folder:
 
@@ -100,7 +102,7 @@ From anywhere: `node <engine>/src/cli/main.ts …` (or an alias). In this reposi
 | `pnpm lint` / `pnpm format` | Biome check / apply fixes |
 | `pnpm verify` | typecheck + lint + test + check and build of the fixture deck (no real content needed) |
 
-Chromium comes from `CHROMIUM_PATH` or `PATH`. Nothing downloads browsers.
+Chromium comes from `CHROMIUM_PATH` or `PATH`. Nothing downloads browsers. TeX comes from `PATH` and is only needed to render diagrams that are not in a content folder's `.dex/cache/`. TeX-dependent tests skip (with a reason) when it is missing, so run `nix develop -c pnpm test` to exercise them.
 
 **Definition of done**: `pnpm verify` passes. Viewer, CSS or layout changes also need `pnpm test:e2e`, plus `dex fit` on real content when available. Deck changes need `dex check` and `dex fit` clean in their content folder.
 
@@ -127,6 +129,7 @@ slides.md ─► front matter + split on `---` ─► per slide: mdast (remark +
 - **Rendering is build time.** The page works without JS (a scrollable document), prints one slide per page, and the viewer only toggles visibility and syncs the URL fragment.
 - **Layouts are data, not code.** `<slot>` templates parsed to hast; `style.css` wrapped in `@layer layouts { @scope (.slide[data-layout=…]) {…} }`.
 - **Output uses only relative URLs** so the built site works from any sub-path.
+- **Diagrams are pre-rendered.** A ```` ```tikz ```` block is compiled at build time with XeLaTeX (PGF's dvisvgm driver) and `dvisvgm --no-fonts`. It is compiled twice, with the light and the dark palette generated from `styles/tokens.css`, preceded by the content folder's `tikz/preamble.tex` and the deck's `tikz.tex`. Both SVGs are inlined and CSS shows the one for the current theme. Renderings are cached in the content folder's `.dex/cache/` (committed), so builds need TeX only for new diagrams. TeX runs without shell escape, with paranoid file access, in a temp folder.
 - **Vite's root is the engine**, not the content folder: `src/build/site.ts` assembles the configuration (there is no `vite.config.ts`), and the plugin reads decks from, and builds into, the content locations.
 
 ## Conventions
@@ -136,7 +139,7 @@ slides.md ─► front matter + split on `---` ─► per slide: mdast (remark +
 - Runs natively on Node ≥ 24 (type stripping): imports use explicit `.ts` extensions, and only erasable syntax is allowed (no `enum`, `namespace`, parameter properties). `tsconfig.json` enforces this.
 - Strict mode with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. Don't use `!` assertions or `any`. Narrow instead.
 - Node code (`src/core`, `src/cli`, `src/build`, tests) and browser code (`src/client`) have separate tsconfigs. Browser code must not import from `src/core`. Shared constants go in `src/shared`.
-- Keep `src/core` pure: only `workspace.ts` and `layouts/load.ts` touch the file system. Inject anything else (see `assetExists`).
+- Keep `src/core` pure: only `workspace.ts`, `layouts/load.ts`, `diagrams/tex.ts`, `diagrams/render.ts` and `diagrams/toolchain.ts` do I/O. Inject anything else (see `assetExists` and `renderDiagrams`).
 - Plain data and functions over classes. Small modules with one job. Comments explain *why*.
 - Style: Biome (2 spaces, single quotes, no semicolons, 100 columns). Run `pnpm format`.
 

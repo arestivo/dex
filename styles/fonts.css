@@ -1,0 +1,11 @@
+/*
+ * The Dex typeface, bundled so slides look the same on every device and
+ * match the diagrams (TeX's `fira` package is the same family).
+ * @font-face rules are not affected by cascade layers.
+ */
+@import "@fontsource/fira-sans/400.css";
+@import "@fontsource/fira-sans/400-italic.css";
+@import "@fontsource/fira-sans/600.css";
+@import "@fontsource/fira-sans/700.css";
+@import "@fontsource/fira-mono/400.css";
+@import "@fontsource/fira-mono/500.css";

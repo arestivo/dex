@@ -44,6 +44,15 @@
       overflow: visible;
     }
 
+    /* Diagrams print in their light rendering (this layer beats components). */
+    .diagram__render--light {
+      display: block;
+    }
+
+    .diagram__render--dark {
+      display: none;
+    }
+
     .viewer-controls,
     .viewer-progress,
     .viewer-toast,

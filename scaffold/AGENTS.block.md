@@ -10,6 +10,9 @@ This folder holds slide decks built with **Dex**. Dex is the engine, installed s
 decks/<slug>/slides.md     one deck per folder; the slug is its URL (/<slug>/)
 decks/<slug>/assets/       images and files that deck uses
 layouts/<name>/            local layouts for these decks (template.html, style.css, layout.md)
+tikz/preamble.tex          shared TikZ styles and macros for every deck's diagrams
+decks/<slug>/tikz.tex      one deck's own TikZ styles (loaded after tikz/preamble.tex)
+.dex/cache/                rendered diagrams: commit it, so builds need TeX only for new ones
 dist/                      the built site: generated, never edit it by hand
 ```
 
@@ -17,7 +20,7 @@ dist/                      the built site: generated, never edit it by hand
 
 Don't guess the syntax: read the reference that matches the installed engine.
 
-- `dex docs` is the complete deck format (front matter, slides, directives, utility classes, making content fit).
+- `dex docs` is the complete deck format (front matter, slides, directives, diagrams, utility classes, making content fit).
 - `dex docs layouts` lists the layouts available here (built-in and local): what each is for, its slots, an example, and how to make a new one.
 
 ### Rules
@@ -27,24 +30,26 @@ Don't guess the syntax: read the reference that matches the installed engine.
 - Keep each deck's files inside its own folder. Reference assets relatively (`assets/x.svg`) and give every image alt text.
 - Don't add CSS or HTML styling to fix one slide. Use layouts, utility classes, or split the slide.
 - When the same slide arrangement keeps recurring, create a local layout (`dex new layout <name>`) and document it in its `layout.md`. Local layouts can't reuse built-in names.
+- Draw diagrams in ```` ```tikz alt="..." ```` blocks (see "Diagrams" in `dex docs`). Use the slide colours (`DexInk`, `DexAccent`, `DexAccentSoft`…) so they work in both themes, and put shared `\tikzset` styles in `tikz/preamble.tex` instead of repeating them in every block.
 
 ### Commands
 
 ```sh
-dex check [slug...]   # validate decks: errors and warnings with file:line and a fix
-dex fit [slug...]     # find slides whose content doesn't fit (headless browser)
-dex dev               # live preview at http://localhost:5173/
-dex build             # build the site into dist/
-dex docs [topic]      # the reference (see above)
-dex new layout <name> # create a local layout in layouts/<name>/
-dex init              # refresh these instructions and the skills after a Dex upgrade
+dex check [slug...]     # validate decks: errors and warnings with file:line and a fix
+dex fit [slug...]       # find slides whose content doesn't fit (headless browser)
+dex shot <slug> [id...] # save slides as images (light + dark) in .dex/shots/ to look at them
+dex dev                 # live preview at http://localhost:5173/
+dex build               # build the site into dist/
+dex docs [topic]        # the reference (see above)
+dex new layout <name>   # create a local layout in layouts/<name>/
+dex init                # refresh these instructions and the skills after a Dex upgrade
 ```
 
 ### Done means
 
 1. `dex check` reports no errors and no warnings for the decks you touched.
 2. `dex fit` reports no overflow for them.
-3. You looked at the changed slides with `dex dev` (both themes: `d` toggles).
+3. You looked at the changed slides: `dex shot <slug> <id...>` and open the images (or `dex dev`, both themes: `d` toggles). For diagrams, check that labels fit their boxes and arrows don't cross boxes.
 4. You reported any judgement calls (splits, new ids, dropped content) to the author.
 
 ### Skills

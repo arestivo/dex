@@ -9,6 +9,7 @@ This is the complete reference for the deck format. Each deck is one Markdown fi
 - [Layouts and slots](#layouts-and-slots)
 - [Content](#content)
 - [Directives](#directives)
+- [Diagrams](#diagrams)
 - [Utility classes](#utility-classes)
 - [Assets and links](#assets-and-links)
 - [Making content fit](#making-content-fit)
@@ -191,6 +192,85 @@ Right
 ```
 
 `::toc` lists every `section` slide in order, linking to each one. The slide holding the `::toc` is left out of the list.
+
+## Diagrams
+
+Draw diagrams with [TikZ](https://tikz.dev/) in a fenced `tikz` block holding exactly one `tikzpicture`. Dex renders it to an SVG figure inside the slide, once for the light theme and once for the dark one, and shows the version matching the current theme. Always describe the diagram in `alt`, for screen readers:
+
+````markdown
+::slide{#agent-loop}
+
+# The agent loop
+
+```tikz alt="Decide leads to Act, which leads to Observe, which loops back to Decide."
+\begin{tikzpicture}[node distance=8mm]
+  \node[draw=DexBorder, fill=DexSurface, rounded corners=2mm, inner sep=6pt] (d) {Decide};
+  \node[draw=DexAccent, fill=DexAccentSoft, rounded corners=2mm, inner sep=6pt, right=of d] (a) {Act};
+  \node[draw=DexBorder, fill=DexSurface, rounded corners=2mm, inner sep=6pt, right=of a] (o) {Observe};
+  \draw[-{Latex}, DexAccent, thick] (d) -- (a);
+  \draw[-{Latex}, DexAccent, thick] (a) -- (o);
+  \draw[-{Latex}, DexMuted, dashed] (o.south) -- ++(0,-6mm) -| (d.south);
+\end{tikzpicture}
+```
+````
+
+**Colours.** Use the slide colours, so diagrams match the slides in both themes:
+
+| Colour | Use |
+| --- | --- |
+| `DexInk`, `DexMuted` | text and lines; secondary text and lines |
+| `DexPaper`, `DexSurface`, `DexBorder` | slide background; neutral fills; outlines |
+| `DexAccent`, `DexAccentSoft` | emphasis; its soft fill |
+| `DexInverse`, `DexInverseText` | dark fills with light text (and the reverse in the dark theme) |
+| `DexInfo`, `DexWarning`, `DexError`, `DexSuccess`, `DexExample` | meaning, as in callouts; each has a `…Soft` fill (`DexWarningSoft`…) |
+
+**Tints: mix with `DexPaper`, not white.** In TikZ, `DexAccent!30` means 30% accent and 70% *white*. On a light slide that is a pale tint; on a dark slide it turns grey. Mix with the slide background instead, `DexAccent!30!DexPaper`, which gives a pale tint on light slides and a deep one on dark slides. Likewise, prefer `DexInk`/`DexPaper` to `black`/`white`.
+
+To use colours of your own, give each theme its value with `\ifDexDark`, usually in a preamble:
+
+```latex
+\ifDexDark
+  \definecolor{Brand}{HTML}{7FB8C0}
+\else
+  \definecolor{Brand}{HTML}{117E88}
+\fi
+```
+
+**Shared styles.** Don't repeat `\tikzset` in every block. Define the folder's styles and macros once:
+
+```latex
+% tikz/preamble.tex
+\tikzset{
+  box/.style={draw=DexBorder, fill=DexSurface, rounded corners=2mm, align=center, inner sep=6pt},
+  key/.style={box, draw=DexAccent, fill=DexAccentSoft, very thick},
+  go/.style={-{Latex[length=2.2mm]}, line width=1pt, draw=DexAccent},
+}
+```
+
+```tikz alt="A box leads to a highlighted key box."
+\begin{tikzpicture}[node distance=8mm]
+  \node[box] (a) {A box};
+  \node[key, right=of a] (b) {A key box};
+  \draw[go] (a) -- (b);
+\end{tikzpicture}
+```
+
+Every diagram is compiled with, in this order:
+
+1. the slide colours and `\ifDexDark`;
+2. `tikz/preamble.tex` in the content folder, shared by every deck (it may `\input{tikz/other.tex}` other files of `tikz/`);
+3. `decks/<slug>/tikz.tex`, for one deck's additions or overrides;
+4. the block.
+
+The TikZ libraries `arrows.meta`, `positioning`, `calc`, `fit`, `backgrounds` and `shapes.geometric` are already loaded; load others in a preamble (`\usetikzlibrary{…}`, `\usepackage{pgfplots}`). Text is set in Fira Sans, the slide typeface, unless a preamble changes it.
+
+**Size.** 10 TeX points are 1em of slide text, so normal-size labels match the slide's body text. A diagram wider than the slide is scaled down; `dex fit` reports one that is too tall.
+
+**Errors.** TeX errors appear in `dex check` at the line of `slides.md` (or of the preamble) where they happen. A preamble error is reported once, on the preamble file.
+
+**Cache.** Rendered diagrams are stored in `.dex/cache/`. Commit that folder: building then needs TeX only for new or changed diagrams, and `dex check` says when TeX is missing.
+
+**Look at them.** `dex shot <deck> <slide-id>` saves the slide as an image in both themes (`.dex/shots/<deck>/<slide-id>-light.png` and `-dark.png`). Check that labels fit their boxes, arrows don't cross boxes, and both themes read well.
 
 ## Utility classes
 

@@ -32,6 +32,7 @@ import {
   loadWorkspaceLayouts,
   type ResolvedWorkspace,
   resolveOptions,
+  texRendererFor,
   type WorkspaceResult,
 } from '../core/workspace.ts'
 
@@ -75,6 +76,8 @@ export function dex(options: DexPluginOptions): Plugin {
     layoutsDir: options.layoutsDir ?? LAYOUTS_DIR,
   })
   let config: ResolvedConfig
+  /** Renders tikz blocks for the dev server (cached in the content folder). */
+  const diagramRenderer = texRendererFor(workspace)
   /** Compiled in buildStart, emitted in generateBundle. */
   let built: WorkspaceResult | undefined
 
@@ -252,7 +255,7 @@ export function dex(options: DexPluginOptions): Plugin {
 
     if (rest.join('/') === '' || rest.join('/') === 'index.html') {
       const { layouts, diagnostics: layoutDiagnostics } = loadWorkspaceLayouts(workspace)
-      const { deck, diagnostics } = await compileDeckAt(location, layouts)
+      const { deck, diagnostics } = await compileDeckAt(location, layouts, diagramRenderer)
       const all = [...layoutDiagnostics.items, ...diagnostics.items]
       report(all)
       if (deck === undefined || hasErrors(all))

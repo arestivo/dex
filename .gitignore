@@ -8,3 +8,6 @@ coverage/
 *.log
 .DS_Store
 .claude/settings.local.json
+
+# Diagram cache and screenshots of the test content above (content folders commit .dex/cache/).
+/.dex/

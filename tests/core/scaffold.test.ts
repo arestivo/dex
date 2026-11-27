@@ -109,8 +109,11 @@ describe('planScaffold', () => {
     expect(read('AGENTS.md')).toContain('layouts/<name>/')
     expect(read('AGENTS.md')).toContain('dex new layout <name>')
     expect(read('AGENTS.md')).toContain('dex docs layouts')
+    expect(read('AGENTS.md')).toContain('tikz/preamble.tex')
+    expect(read('AGENTS.md')).toContain('dex shot <slug>')
+    expect(read('AGENTS.md')).toContain('.dex/cache/')
     expect(read('CLAUDE.md')).toBe('@AGENTS.md\n')
-    expect(read('.gitignore')).toBe('/dist/\n')
+    expect(read('.gitignore')).toBe('/dist/\n/.dex/shots/\n')
     expect(read('.agents/skills/author-deck/SKILL.md')).toContain('generatedBy: dex')
     expect(readlinkSync(join(root, '.claude/skills/author-deck'))).toBe(
       '../../.agents/skills/author-deck',
@@ -140,18 +143,21 @@ describe('planScaffold', () => {
   it('appends the output folder to .gitignore only when it is not ignored yet', () => {
     writeFileSync(join(root, '.gitignore'), 'node_modules/')
     init()
-    expect(read('.gitignore')).toBe('node_modules/\n/dist/\n')
+    expect(read('.gitignore')).toBe('node_modules/\n/dist/\n/.dex/shots/\n')
 
-    writeFileSync(join(root, '.gitignore'), 'dist/\n')
+    writeFileSync(join(root, '.gitignore'), 'dist/\n.dex/shots/\n')
     const plan = planScaffold(content())
     expect(kinds(plan.changes)['.gitignore']).toBe('unchanged')
   })
 
-  it('skips .gitignore when the output folder is outside the content folder', () => {
-    const plan = planScaffold(contentLocations({ folder: root, dist: tmpdir() }))
-    expect(plan.changes.find((change) => change.path === '.gitignore')).toMatchObject({
-      kind: 'skipped',
-    })
+  it('only ignores screenshots when the output folder is outside the content folder', () => {
+    applyScaffold(planScaffold(contentLocations({ folder: root, dist: tmpdir() })))
+    expect(read('.gitignore')).toBe('/.dex/shots/\n')
+  })
+
+  it('never ignores the diagram cache', () => {
+    init()
+    expect(read('.gitignore')).not.toMatch(/\.dex\/?$|\.dex\/cache|^\/?\.dex\/?\*?$/m)
   })
 
   it('refreshes the managed block and edited skills, keeping notes outside the markers', () => {

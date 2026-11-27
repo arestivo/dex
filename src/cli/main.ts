@@ -11,25 +11,27 @@ import { runDocs } from './docs.ts'
 import { runFit } from './fit.ts'
 import { runInit } from './init.ts'
 import { runNew } from './new.ts'
+import { runShot } from './shot.ts'
 
 const USAGE = `Usage: dex <command> [options] [args...]
 
 Commands:
-  init              prepare this folder for decks and agents (safe to re-run)
-  new layout <name> create a local layout in layouts/<name>/
-  dev               serve the decks with live reload
-  build             build the static site
-  preview           serve the built site like a static host
-  check [slug...]   validate decks (no build)
-  fit [slug...]     build, then report slides whose content does not fit
-  docs [topic]      print the reference: authoring (default), layouts
+  init                  prepare this folder for decks and agents (safe to re-run)
+  new layout <name>     create a local layout in layouts/<name>/
+  dev                   serve the decks with live reload
+  build                 build the static site
+  preview               serve the built site like a static host
+  check [slug...]       validate decks (no build)
+  fit [slug...]         build, then report slides whose content does not fit
+  shot <slug> [id...]   save slide images (light + dark) to .dex/shots/
+  docs [topic]          print the reference: authoring (default), layouts
 
 Options:
-  --folder <dir>    content folder containing decks/ (default: current folder)
-  --dist <dir>      output folder for the site (default: <folder>/dist)
-  --port <n>        port for dev and preview
-  --list            with docs: list the topics
-  -h, --help        show this help
+  --folder <dir>        content folder containing decks/ (default: current folder)
+  --dist <dir>          output folder for the site (default: <folder>/dist)
+  --port <n>            port for dev and preview
+  --list                with docs: list the topics
+  -h, --help            show this help
 `
 
 async function main(argv: readonly string[]): Promise<number> {
@@ -81,6 +83,8 @@ async function main(argv: readonly string[]): Promise<number> {
       return runCheck(content, args)
     case 'fit':
       return runFit(content, args)
+    case 'shot':
+      return runShot(content, args)
     case 'docs':
       return runDocs(content, args[0], values.list === true)
     default:

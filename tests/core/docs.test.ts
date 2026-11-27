@@ -1,5 +1,11 @@
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { builtInLayouts, compile } from '../helpers.ts'
+import { paletteTex, parseColourTokens } from '../../src/core/diagrams/palette.ts'
+import { compileTikz } from '../../src/core/diagrams/tex.ts'
+import { missingTexPrograms } from '../../src/core/diagrams/toolchain.ts'
+import { builtInLayouts, compile, PROJECT_ROOT } from '../helpers.ts'
 
 /** The fenced example under "## Example" in a layout's notes. */
 function example(notes: string): string | undefined {
@@ -29,4 +35,65 @@ describe('built-in layout notes (layout.md)', () => {
       })
     })
   }
+})
+
+describe('docs/authoring.md diagrams', () => {
+  const doc = readFileSync(join(PROJECT_ROOT, 'docs/authoring.md'), 'utf8')
+  const section = doc.slice(doc.indexOf('## Diagrams'), doc.indexOf('## Utility classes'))
+  const blocks = (lang: string) =>
+    [...section.matchAll(new RegExp(`^(\`{3,})${lang}[^\\n]*\\n([\\s\\S]*?)^\\1$`, 'gm'))].map(
+      ([, , body = '']) => body,
+    )
+  const tikzExamples = blocks('tikz')
+  const latex = blocks('latex')
+  const preamble = latex.find((block) => block.startsWith('% tikz/preamble.tex')) ?? ''
+  const ownColours = latex.find((block) => block.includes('\\ifDexDark')) ?? ''
+  const tokens = parseColourTokens(readFileSync(join(PROJECT_ROOT, 'styles/tokens.css'), 'utf8'))
+
+  it('documents the block syntax, colours, preambles and dex shot', () => {
+    expect(tikzExamples.length).toBeGreaterThanOrEqual(2)
+    expect(preamble).toContain('\\tikzset')
+    expect(ownColours).toContain('\\definecolor{Brand}')
+    for (const name of [
+      'DexInk',
+      'DexAccentSoft',
+      'tikz/preamble.tex',
+      'decks/<slug>/tikz.tex',
+      'dex shot',
+      '.dex/cache/',
+    ]) {
+      expect(section).toContain(name)
+    }
+  })
+
+  const missing = missingTexPrograms()
+  it.skipIf(missing.length > 0)(
+    `compiles every tikz example in both themes (needs ${missing.join(', ') || 'TeX'})`,
+    async () => {
+      const folder = mkdtempSync(join(tmpdir(), 'dex-doc-examples-'))
+      try {
+        mkdirSync(join(folder, 'tikz'))
+        writeFileSync(join(folder, 'tikz/preamble.tex'), preamble)
+        const deckPreamble = { path: 'decks/doc/tikz.tex', content: ownColours }
+        const sources = [
+          ...tikzExamples,
+          '\\begin{tikzpicture}\\node[fill=Brand] {Brand};\\end{tikzpicture}',
+        ]
+        for (const theme of ['light', 'dark'] as const) {
+          for (const source of sources) {
+            const result = await compileTikz({
+              source,
+              palette: paletteTex(tokens, theme),
+              tikzDir: join(folder, 'tikz'),
+              deckPreamble,
+            })
+            expect(result, source).toHaveProperty('svg')
+          }
+        }
+      } finally {
+        rmSync(folder, { recursive: true, force: true })
+      }
+    },
+    120_000,
+  )
 })

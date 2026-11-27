@@ -5,8 +5,9 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve, sep } from 'node:path'
 import { type CompileResult, compileDeck } from './compile.ts'
-import { DECKS_FOLDER, LAYOUTS_DIR, LAYOUTS_FOLDER } from './config.ts'
+import { DECKS_FOLDER, ENGINE_ROOT, LAYOUTS_DIR, LAYOUTS_FOLDER } from './config.ts'
 import { type Diagnostic, DiagnosticBag } from './diagnostics.ts'
+import { createTexRenderer, type DiagramRenderer } from './diagrams/render.ts'
 import { type LayoutSet, loadLayoutSet } from './layouts/load.ts'
 import { type CompiledDeck, IDENTIFIER_PATTERN, type Layout } from './model.ts'
 
@@ -21,10 +22,13 @@ export interface WorkspaceOptions {
   readonly layoutsDir?: string
   /** Local layouts folder, absolute or relative to `root` (default `<root>/layouts`). */
   readonly localLayoutsDir?: string
+  /** Renders tikz blocks (default: TeX, cached in `<root>/.dex/cache/`). */
+  readonly diagramRenderer?: DiagramRenderer
 }
 
 /** Workspace options with every path absolute. */
-export type ResolvedWorkspace = Required<WorkspaceOptions>
+export type ResolvedWorkspace = Required<Omit<WorkspaceOptions, 'diagramRenderer'>> &
+  Pick<WorkspaceOptions, 'diagramRenderer'>
 
 export interface DeckLocation {
   readonly slug: string
@@ -47,7 +51,18 @@ export function resolveOptions(options: WorkspaceOptions): ResolvedWorkspace {
     decksDir: resolve(root, options.decksDir ?? DECKS_FOLDER),
     layoutsDir: resolve(root, options.layoutsDir ?? LAYOUTS_DIR),
     localLayoutsDir: resolve(root, options.localLayoutsDir ?? LAYOUTS_FOLDER),
+    ...(options.diagramRenderer === undefined ? {} : { diagramRenderer: options.diagramRenderer }),
   }
+}
+
+/** The TeX diagram renderer for a content folder (palettes from the engine's tokens). */
+export function texRendererFor(options: WorkspaceOptions): DiagramRenderer {
+  const resolved = resolveOptions(options)
+  return createTexRenderer({
+    root: resolved.root,
+    decksDir: resolved.decksDir,
+    tokensCss: readFileSync(join(ENGINE_ROOT, 'styles', 'tokens.css'), 'utf8'),
+  })
 }
 
 /** Loads the built-in layouts and the content folder's local layouts. */
@@ -84,9 +99,12 @@ export function findDecks(options: WorkspaceOptions, diagnostics: DiagnosticBag)
 export function compileDeckAt(
   location: DeckLocation,
   layouts: ReadonlyMap<string, Layout>,
+  renderer?: DiagramRenderer,
 ): Promise<CompileResult> {
   return compileDeck(
     {
+      renderDiagrams:
+        renderer === undefined ? undefined : (sources) => renderer(location.slug, sources),
       slug: location.slug,
       file: location.file,
       source: readFileSync(join(location.dir, DECK_FILE), 'utf8'),
@@ -130,9 +148,10 @@ export async function compileWorkspace(
     locations = locations.filter((location) => slugs.includes(location.slug))
   }
 
+  const renderer = resolved.diagramRenderer ?? texRendererFor(resolved)
   const decks: CompiledDeck[] = []
   for (const location of locations) {
-    const { deck, diagnostics } = await compileDeckAt(location, layouts)
+    const { deck, diagnostics } = await compileDeckAt(location, layouts, renderer)
     bag.push(...diagnostics.items)
     if (deck === undefined) continue
     decks.push(deck)

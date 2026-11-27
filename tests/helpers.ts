@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import type { Element } from 'hast'
 import { toHtml } from 'hast-util-to-html'
-import { type CompileResult, compileDeck } from '../src/core/compile.ts'
+import { type CompileResult, compileDeck, type DeckInput } from '../src/core/compile.ts'
 import { formatDiagnostic } from '../src/core/diagnostics.ts'
 import { loadLayoutSet } from '../src/core/layouts/load.ts'
 import type { CompiledDeck, Layout } from '../src/core/model.ts'
@@ -21,6 +21,8 @@ export interface CompileOptions {
   readonly layouts?: ReadonlyMap<string, Layout>
   /** Prepend a minimal front matter block (default true). */
   readonly frontMatter?: boolean
+  /** Renders tikz blocks (default: none, so diagrams are errors). */
+  readonly renderDiagrams?: DeckInput['renderDiagrams']
 }
 
 export function compile(body: string, options: CompileOptions = {}): Promise<CompileResult> {
@@ -31,6 +33,7 @@ export function compile(body: string, options: CompileOptions = {}): Promise<Com
       file: 'decks/test/slides.md',
       source: (options.frontMatter === false ? '' : FRONT_MATTER) + body,
       assetExists: (path) => assets.has(path),
+      renderDiagrams: options.renderDiagrams,
     },
     options.layouts ?? builtInLayouts,
   )

@@ -73,6 +73,22 @@ Edsger W. Dijkstra
 
 ---
 
+::slide{#diagram}
+
+# Diagram
+
+```tikz alt="Decide leads to Act, which leads to Observe."
+\begin{tikzpicture}[node distance=8mm]
+  \node[box] (d) {\textbf{Decide}};
+  \node[key,right=of d] (a) {\textbf{Act}};
+  \node[box,right=of a] (o) {\textbf{Observe}};
+  \draw[go] (d)--(a);
+  \draw[go] (a)--(o);
+\end{tikzpicture}
+```
+
+---
+
 ::slide{#last layout=center}
 
 # The end

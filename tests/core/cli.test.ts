@@ -6,10 +6,20 @@ import { BLOCK_END, BLOCK_START } from '../../src/cli/scaffold.ts'
 import { FIXTURES, PROJECT_ROOT, runDex } from '../helpers.ts'
 
 describe('dex --help', () => {
-  it('lists every command, including init, new and docs', async () => {
+  it('lists every command, including init, new, shot and docs', async () => {
     const { code, stdout } = await runDex(PROJECT_ROOT, '--help')
     expect(code).toBe(0)
-    for (const command of ['init', 'new', 'dev', 'build', 'preview', 'check', 'fit', 'docs']) {
+    for (const command of [
+      'init',
+      'new',
+      'dev',
+      'build',
+      'preview',
+      'check',
+      'fit',
+      'shot',
+      'docs',
+    ]) {
       expect(stdout).toMatch(new RegExp(`^ {2}${command}\\b`, 'm'))
     }
   })

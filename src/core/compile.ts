@@ -1,11 +1,16 @@
 /**
  * Compiles one deck source into rendered slides. This is the heart of the
- * engine; it is pure apart from the injected `assetExists` check.
+ * engine; it is pure apart from the injected `assetExists` and
+ * `renderDiagrams` functions.
  */
 import type { Element, ElementContent } from 'hast'
 import { toString as hastToString } from 'hast-util-to-string'
-import type { RootContent } from 'mdast'
+import type { Code, RootContent } from 'mdast'
+import { visit } from 'unist-util-visit'
 import { DiagnosticBag } from './diagnostics.ts'
+import { isDiagramLanguage, parseAlt, validateTikz } from './diagrams/block.ts'
+import { diagramFigure } from './diagrams/figure.ts'
+import type { DiagramOutcome } from './diagrams/render.ts'
 import { fillTemplate, type TemplateValues } from './layouts/template.ts'
 import { type TocEntry, transformDirectives } from './markdown/directives.ts'
 import { isKnownLanguage as isKnown, prepareHighlighter } from './markdown/highlight.ts'
@@ -29,6 +34,8 @@ export interface DeckInput {
   readonly source: string
   /** Whether a path relative to the deck folder exists. */
   readonly assetExists: (path: string) => boolean
+  /** Renders the deck's tikz blocks (light and dark); absent when diagrams cannot be rendered. */
+  readonly renderDiagrams?: ((sources: readonly string[]) => Promise<DiagramOutcome[]>) | undefined
 }
 
 export interface CompileResult {
@@ -77,6 +84,7 @@ export async function compileDeck(
   )
   const slideIds = new Set(slides.flatMap((slide) => (slide.id ? [slide.id] : [])))
   const highlighter = await prepareHighlighter(slides.map((slide) => slide.tree))
+  const diagrams = await prepareDiagrams(slides, input, diagnostics)
   const assets = new Set<string>()
   const rendered: RenderedSlide[] = []
 
@@ -101,7 +109,7 @@ export async function compileDeck(
       const root = { type: 'root' as const, children: nodes }
       transformDirectives(root, { toc, error })
       warnUnknownLanguages(nodes, warn)
-      const hast = markdownToHast(root.children, highlighter, slide.markdown)
+      const hast = markdownToHast(root.children, highlighter, slide.markdown, diagrams)
       for (const asset of collectReferences(hast, {
         slideIds,
         assetExists: input.assetExists,
@@ -129,6 +137,87 @@ export async function compileDeck(
 
   if (meta === undefined || diagnostics.hasErrors) return { deck: undefined, diagnostics }
   return { deck: { slug: input.slug, meta, slides: rendered, assets }, diagnostics }
+}
+
+/**
+ * Validates every diagram block, renders the valid ones in one batch, and
+ * returns their figures keyed by mdast node. Errors become diagnostics on
+ * the deck (block lines) or on the preamble file TeX blamed.
+ */
+async function prepareDiagrams(
+  slides: readonly ParsedSlide[],
+  input: DeckInput,
+  diagnostics: DiagnosticBag,
+): Promise<Map<Code, Element>> {
+  const figures = new Map<Code, Element>()
+  const blocks: { node: Code; slide: ParsedSlide; alt: string | undefined; fence: number }[] = []
+
+  for (const slide of slides) {
+    visit(slide.tree, 'code', (node) => {
+      if (!isDiagramLanguage(node.lang)) return
+      const fence = (node.position?.start.line ?? 1) + slide.lineOffset
+      const at = { line: fence, slideId: slide.id }
+      const problem = validateTikz(node.value)
+      if (problem !== undefined) {
+        diagnostics.error(input.file, problem, at)
+        return
+      }
+      const alt = parseAlt(node.meta)
+      if (alt === undefined) {
+        diagnostics.warn(
+          input.file,
+          'Diagram without alt text: describe what it shows, e.g. ```tikz alt="The agent loop: decide, act, observe".',
+          at,
+        )
+      }
+      blocks.push({ node, slide, alt, fence })
+    })
+  }
+  if (blocks.length === 0) return figures
+
+  if (input.renderDiagrams === undefined) {
+    for (const block of blocks) {
+      diagnostics.error(input.file, 'Diagrams cannot be rendered here.', {
+        line: block.fence,
+        slideId: block.slide.id,
+      })
+    }
+    return figures
+  }
+
+  const outcomes = await input.renderDiagrams(blocks.map((block) => block.node.value))
+  const reported = new Set<string>()
+  const counts = new Map<string, number>()
+  blocks.forEach((block, index) => {
+    const outcome = outcomes[index]
+    if (outcome === undefined) return
+    if ('svg' in outcome) {
+      const key = block.slide.id ?? 'slide'
+      const number = (counts.get(key) ?? 0) + 1
+      counts.set(key, number)
+      figures.set(block.node, diagramFigure(outcome.svg, block.alt, `${key}-diagram${number}-`))
+      return
+    }
+    const { error } = outcome
+    if (error.file === 'block') {
+      const line = error.line === undefined ? block.fence : block.fence + error.line
+      diagnostics.error(input.file, `Diagram error: ${error.message}`, {
+        line,
+        slideId: block.slide.id,
+      })
+      return
+    }
+    // A preamble error breaks every diagram using it: report it once.
+    const key = `${error.file}:${error.line ?? ''}:${error.message}`
+    if (reported.has(key)) return
+    reported.add(key)
+    diagnostics.error(
+      error.file,
+      `Diagram preamble error: ${error.message}`,
+      error.line === undefined ? {} : { line: error.line },
+    )
+  })
+  return figures
 }
 
 /**
@@ -272,7 +361,7 @@ function warnUnknownLanguages(
   warn: (message: string, line: number | undefined) => void,
 ): void {
   const visit = (node: RootContent): void => {
-    if (node.type === 'code' && node.lang && !isKnown(node.lang)) {
+    if (node.type === 'code' && node.lang && !isKnown(node.lang) && !isDiagramLanguage(node.lang)) {
       warn(
         `Unknown code language "${node.lang}": rendered as plain text.`,
         node.position?.start.line,

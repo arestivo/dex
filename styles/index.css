@@ -16,6 +16,7 @@
  */
 @layer reset, tokens, base, viewer, components, layouts, utilities, print;
 
+@import "./fonts.css";
 @import "./reset.css";
 @import "./tokens.css";
 @import "./base.css";
@@ -24,6 +25,7 @@
 @import "./components/slide.css";
 @import "./components/callout.css";
 @import "./components/code.css";
+@import "./components/diagram.css";
 @import "./components/table.css";
 @import "./components/toc.css";
 @import "./pages/site-index.css";

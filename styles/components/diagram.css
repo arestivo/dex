@@ -1,0 +1,38 @@
+/*
+ * ```tikz diagrams: a figure holding a light and a dark rendering of the
+ * same drawing. Only the one matching the current theme is shown: the OS
+ * preference, unless the viewer's toggle set <html data-theme>.
+ */
+@layer components {
+  .diagram {
+    display: flex;
+    justify-content: center;
+  }
+
+  .diagram__render {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .diagram__render--dark {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .diagram__render--light {
+      display: none;
+    }
+
+    :root:not([data-theme="light"]) .diagram__render--dark {
+      display: block;
+    }
+  }
+
+  :root[data-theme="dark"] .diagram__render--light {
+    display: none;
+  }
+
+  :root[data-theme="dark"] .diagram__render--dark {
+    display: block;
+  }
+}

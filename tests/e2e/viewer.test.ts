@@ -142,6 +142,58 @@ describe('local layouts', () => {
   })
 })
 
+describe('diagrams', () => {
+  const visible = (page: Page) =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('#diagram .diagram__render')]
+        .filter((svg) => getComputedStyle(svg).display !== 'none')
+        .map((svg) => (svg.classList.contains('diagram__render--dark') ? 'dark' : 'light')),
+    )
+
+  it('shows only the rendering that matches the theme, and follows the toggle', async () => {
+    const page = await open('#diagram')
+    await page.emulateMedia({ colorScheme: 'light' })
+    expect(await page.getAttribute('#diagram figure.diagram', 'aria-label')).toBe(
+      'Decide leads to Act, which leads to Observe.',
+    )
+    expect(await visible(page)).toEqual(['light'])
+    await page.keyboard.press('d')
+    expect(await visible(page)).toEqual(['dark'])
+    await page.keyboard.press('d')
+    expect(await visible(page)).toEqual(['light'])
+  })
+
+  it('follows the OS preference when there is no override', async () => {
+    const page = await open('#diagram')
+    await page.emulateMedia({ colorScheme: 'dark' })
+    expect(await visible(page)).toEqual(['dark'])
+  })
+
+  it('prints the light rendering, even in the dark theme', async () => {
+    const page = await open('#diagram')
+    await page.emulateMedia({ colorScheme: 'dark', media: 'print' })
+    expect(await visible(page)).toEqual(['light'])
+  })
+})
+
+describe('typeface', () => {
+  it('sets slide text in the bundled Fira Sans', async () => {
+    const page = await open('#first')
+    const font = await page.evaluate(async () => {
+      await document.fonts.ready
+      const text = document.querySelector('#first li') as Element
+      return {
+        family: getComputedStyle(text).fontFamily,
+        loaded: [...document.fonts].some(
+          (face) => face.family.replaceAll('"', '') === 'Fira Sans' && face.status === 'loaded',
+        ),
+      }
+    })
+    expect(font.family).toMatch(/^"?Fira Sans"?,/)
+    expect(font.loaded).toBe(true)
+  })
+})
+
 describe('theme', () => {
   it('toggles with d and persists the override', async () => {
     const page = await open('#first')
@@ -168,7 +220,7 @@ describe('without JavaScript', () => {
       '.slide',
       (all) => all.filter((slide) => getComputedStyle(slide).display !== 'none').length,
     )
-    expect(slides).toBe(10)
+    expect(slides).toBe(11)
     const top = await page.evaluate(
       () => document.getElementById('details')?.getBoundingClientRect().top ?? -1,
     )
