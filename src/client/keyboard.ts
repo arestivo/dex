@@ -37,6 +37,37 @@ export function actionForKey(event: KeyInput): Action | undefined {
   }
 }
 
+export type SearchAction = 'open' | 'next' | 'previous' | 'close'
+
+export interface SearchState {
+  /** The search bar is shown. */
+  readonly open: boolean
+  /** Focus is in the search field. */
+  readonly inField: boolean
+}
+
+/**
+ * Search keys: Ctrl+F (Cmd+F) always opens the bar; F3, Esc and, in the
+ * field, Enter only act while it is open. Everything else is left alone.
+ */
+export function searchKeyAction(event: KeyInput, state: SearchState): SearchAction | undefined {
+  if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'f') {
+    return 'open'
+  }
+  if (!state.open || event.ctrlKey || event.metaKey || event.altKey) return undefined
+  switch (event.key) {
+    case 'Escape':
+      return 'close'
+    case 'F3':
+      return event.shiftKey ? 'previous' : 'next'
+    case 'Enter':
+      if (!state.inField) return undefined
+      return event.shiftKey ? 'previous' : 'next'
+    default:
+      return undefined
+  }
+}
+
 /** True when keystrokes should go to the element rather than the viewer. */
 export function isEditable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false

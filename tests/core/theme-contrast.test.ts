@@ -33,6 +33,21 @@ describe('contrastProblems', () => {
     expect(contrastProblems(mergeColours(TOKENS, new Map()))).toEqual([])
   })
 
+  it('checks search highlights against their text', () => {
+    const merged = mergeColours(
+      TOKENS,
+      new Map([['color-search-current', { light: 'FF8A3D', dark: 'E0E0E0' }]]),
+    )
+    expect(contrastProblems(merged)).toEqual([
+      expect.objectContaining({
+        foreground: 'color-search-text',
+        background: 'color-search-current',
+        label: 'the current search match',
+        mode: 'dark',
+      }),
+    ])
+  })
+
   it('reports a pair in the mode where it fails', () => {
     const merged = mergeColours(
       TOKENS,

@@ -27,6 +27,11 @@
     --color-link: var(--color-accent);
     --color-highlight: light-dark(#fff3b0, #4a3f00);
 
+    /* In-deck search (Ctrl+F): every match, the current one, and their text */
+    --color-search-match: light-dark(#ffd34d, #6b5200);
+    --color-search-current: light-dark(#ff8a3d, #b34700);
+    --color-search-text: light-dark(#1b2130, #ffffff);
+
     /* Inverse surfaces (title and section slides) */
     --color-inverse-bg: light-dark(#18233a, #1d2a45);
     --color-inverse-text: #f3f5fa;

@@ -23,6 +23,7 @@
 @import "./base.css";
 @import "./viewer/deck.css";
 @import "./viewer/chrome.css";
+@import "./viewer/search.css";
 @import "./components/slide.css";
 @import "./components/callout.css";
 @import "./components/code.css";

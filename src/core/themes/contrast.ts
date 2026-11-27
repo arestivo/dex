@@ -26,6 +26,16 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
     background: 'color-inverse-bg',
     label: 'text on inverse (title and section) slides',
   },
+  {
+    foreground: 'color-search-text',
+    background: 'color-search-match',
+    label: 'search matches',
+  },
+  {
+    foreground: 'color-search-text',
+    background: 'color-search-current',
+    label: 'the current search match',
+  },
   ...TONES.map((tone) => ({
     foreground: `tone-${tone}`,
     background: `tone-${tone}-bg`,

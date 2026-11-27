@@ -65,7 +65,11 @@ export function createChrome(deck: HTMLElement, handlers: ChromeHandlers): Chrom
   }
 }
 
-function button(icon: keyof typeof icons, label: string, onClick: () => void): HTMLButtonElement {
+export function button(
+  icon: keyof typeof icons,
+  label: string,
+  onClick: () => void,
+): HTMLButtonElement {
   const el = element('button', 'viewer-controls__button', {
     type: 'button',
     'aria-label': label,
@@ -76,7 +80,7 @@ function button(icon: keyof typeof icons, label: string, onClick: () => void): H
   return el
 }
 
-function element<K extends keyof HTMLElementTagNameMap>(
+export function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className: string,
   attributes: Record<string, string> = {},

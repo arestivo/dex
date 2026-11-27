@@ -1,0 +1,70 @@
+/*
+ * The search bar (Ctrl+F) and the match highlights. The bar uses the
+ * viewer chrome colours; highlights use the search colour tokens, so both
+ * follow the theme and the light/dark mode. Sized in rem, like the chrome.
+ */
+@layer viewer {
+  .viewer-search {
+    position: fixed;
+    inset-block-start: 0.75rem;
+    inset-inline-end: 0.75rem;
+    z-index: 11;
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.25rem 0.25rem 0.25rem 0.9rem;
+    font-size: 0.875rem;
+    color: var(--chrome-text);
+    background: var(--chrome-bg);
+    border-radius: var(--chrome-radius);
+    box-shadow: var(--chrome-shadow);
+    backdrop-filter: blur(6px);
+  }
+
+  .viewer-search[hidden] {
+    display: none;
+  }
+
+  .viewer-search:focus-within {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .viewer-search__field {
+    width: 14rem;
+    padding: 0.35rem 0;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    outline: none;
+  }
+
+  .viewer-search__field::placeholder {
+    color: var(--color-muted);
+  }
+
+  /* The field's own clear button would duplicate the close button. */
+  .viewer-search__field::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  .viewer-search__count {
+    min-width: 5.5rem;
+    padding-inline: 0.5rem;
+    color: var(--color-muted);
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  ::highlight(dex-search) {
+    color: var(--color-search-text);
+    background-color: var(--color-search-match);
+  }
+
+  ::highlight(dex-search-current) {
+    color: var(--color-search-text);
+    background-color: var(--color-search-current);
+  }
+}

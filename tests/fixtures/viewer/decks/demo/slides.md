@@ -30,6 +30,7 @@ author: Test Author
 
 - One
 - Two
+- A **pre**flight check
 
 ---
 
@@ -38,6 +39,8 @@ author: Test Author
 # Second
 
 A paragraph with a [link to the details](#details).
+
+Each preflight costs a round trip.
 
 ---
 
@@ -102,3 +105,5 @@ This layout belongs to this deck only.
 ::slide{#last layout=center}
 
 # The end
+
+Função e fim.

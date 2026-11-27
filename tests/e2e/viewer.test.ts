@@ -4,7 +4,7 @@
  * (tests/fixtures/viewer), in the system Chromium. Run with `pnpm test:e2e`.
  */
 import { type Browser, chromium, type Page } from 'playwright-core'
-import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest'
 import { findChromium } from '../../src/cli/browser.ts'
 
 const DECK = new URL('demo/', inject('baseUrl')).href
@@ -16,6 +16,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await browser.close()
+})
+
+// Each test opens its own context; closing them keeps the suite's memory flat.
+afterEach(async () => {
+  await Promise.all(browser.contexts().map((context) => context.close()))
 })
 
 async function open(
@@ -114,6 +119,168 @@ describe('presentation mode', () => {
     await page.click('.viewer-controls__button[aria-label="Copy link to this slide"]')
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(`${DECK}#first`)
     expect(await page.textContent('.viewer-toast')).toBe('Link copied')
+  })
+})
+
+describe('search', () => {
+  const count = (page: Page) => page.textContent('.viewer-search__count')
+  const barHidden = (page: Page) =>
+    page.evaluate(() => document.querySelector<HTMLElement>('.viewer-search')?.hidden)
+  const highlighted = (page: Page) =>
+    page.evaluate(() => ({
+      all: CSS.highlights.get('dex-search')?.size ?? 0,
+      current: [...(CSS.highlights.get('dex-search-current') ?? [])].map(String),
+    }))
+  const highlightColours = (page: Page) =>
+    page.evaluate(() => {
+      const text = document.querySelector(
+        '.slide[data-current] p, .slide[data-current] li',
+      ) as Element
+      const style = (name: string) => {
+        const computed = getComputedStyle(text, `::highlight(${name})`)
+        return [computed.backgroundColor, computed.color]
+      }
+      return { match: style('dex-search'), current: style('dex-search-current') }
+    })
+  const search = async (page: Page, text: string) => {
+    await page.keyboard.press('Control+f')
+    await page.keyboard.type(text)
+  }
+
+  it('opens in the top-right corner with Ctrl+F, focused, instead of the browser find', async () => {
+    const page = await open('#title')
+    expect(await barHidden(page)).toBe(true)
+    await page.evaluate(() => {
+      document.addEventListener('keydown', (event) => {
+        ;(window as unknown as { prevented: boolean }).prevented = event.defaultPrevented
+      })
+    })
+    await page.keyboard.press('Control+f')
+    expect(await barHidden(page)).toBe(false)
+    expect(await page.evaluate(() => (window as unknown as { prevented: boolean }).prevented)).toBe(
+      true,
+    )
+    expect(await page.evaluate(() => document.activeElement?.className)).toBe(
+      'viewer-search__field',
+    )
+    const box = await page.locator('.viewer-search').boundingBox()
+    expect(box?.y).toBeLessThan(40)
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeGreaterThan(1240)
+  })
+
+  it('selects the search text when Ctrl+F is pressed again', async () => {
+    const page = await open('#title')
+    await search(page, 'preflight')
+    await page.evaluate(() => (document.activeElement as HTMLElement).blur())
+    await page.keyboard.press('Control+f')
+    expect(
+      await page.evaluate(() => {
+        const field = document.activeElement as HTMLInputElement
+        return [field.className, field.selectionStart, field.selectionEnd]
+      }),
+    ).toEqual(['viewer-search__field', 0, 9])
+  })
+
+  it('jumps to the first match as you type, highlighting every match, across formatting', async () => {
+    const page = await open('#title')
+    await search(page, 'preflight')
+    expect(await current(page)).toBe('first')
+    expect(page.url()).toBe(`${DECK}#first`)
+    expect(await count(page)).toBe('1 of 2')
+    expect(await highlighted(page)).toEqual({ all: 2, current: ['preflight'] })
+    expect(await page.textContent('.viewer-search .visually-hidden')).toMatch(
+      /^1 of 2\. Slide 4 of \d+: First$/,
+    )
+  })
+
+  it('starts from the slide shown, and ignores case and accents', async () => {
+    const page = await open('#second')
+    await search(page, 'FUNCAO')
+    expect(await current(page)).toBe('last')
+    expect(await highlighted(page)).toEqual({ all: 1, current: ['Função'] })
+  })
+
+  it('moves with F3, Shift+F3 and Enter, wrapping around', async () => {
+    const page = await open('#title')
+    await search(page, 'preflight')
+    await page.keyboard.press('Enter')
+    expect([await current(page), await count(page)]).toEqual(['second', '2 of 2'])
+    await page.keyboard.press('Enter')
+    expect([await current(page), await count(page)]).toEqual(['first', '1 of 2'])
+    await page.keyboard.press('Shift+Enter')
+    expect([await current(page), await count(page)]).toEqual(['second', '2 of 2'])
+    // F3 works wherever the focus is.
+    await page.evaluate(() => (document.activeElement as HTMLElement).blur())
+    await page.keyboard.press('F3')
+    expect([await current(page), await count(page)]).toEqual(['first', '1 of 2'])
+    await page.keyboard.press('Shift+F3')
+    expect([await current(page), await count(page)]).toEqual(['second', '2 of 2'])
+    expect((await highlighted(page)).current).toEqual(['preflight'])
+  })
+
+  it('says when there are no matches and stays on the slide', async () => {
+    const page = await open('#second')
+    await search(page, 'zzzz')
+    expect(await count(page)).toBe('No matches')
+    expect(await current(page)).toBe('second')
+    expect(await highlighted(page)).toEqual({ all: 0, current: [] })
+  })
+
+  it('closes with Esc, clearing the highlights and giving the keys back to the deck', async () => {
+    const page = await open('#title')
+    await search(page, 'preflight')
+    await page.keyboard.press('Escape')
+    expect(await barHidden(page)).toBe(true)
+    expect(await highlighted(page)).toEqual({ all: 0, current: [] })
+    expect(await current(page)).toBe('first')
+    await page.keyboard.press('ArrowRight')
+    expect(await current(page)).toBe('second')
+  })
+
+  it('stays visible while the controls hide for inactivity', async () => {
+    const page = await open('#title')
+    await search(page, 'preflight')
+    await page.evaluate(() => document.querySelector('.deck')?.setAttribute('data-idle', ''))
+    expect(
+      await page.evaluate(
+        () => getComputedStyle(document.querySelector('.viewer-search') as Element).opacity,
+      ),
+    ).toBe('1')
+  })
+
+  it('highlights in the colours of the mode and the theme', async () => {
+    const page = await open('#title')
+    await search(page, 'preflight')
+    expect(await highlightColours(page)).toEqual({
+      match: ['rgb(255, 211, 77)', 'rgb(27, 33, 48)'],
+      current: ['rgb(255, 138, 61)', 'rgb(27, 33, 48)'],
+    })
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('d')
+    expect(await highlightColours(page)).toEqual({
+      match: ['rgb(107, 82, 0)', 'rgb(255, 255, 255)'],
+      current: ['rgb(179, 71, 0)', 'rgb(255, 255, 255)'],
+    })
+    await page.addStyleTag({
+      content: '@layer themes { :root[data-theme] { --color-search-current: #00aa55; } }',
+    })
+    expect((await highlightColours(page)).current[0]).toBe('rgb(0, 170, 85)')
+  })
+
+  it('never prints the bar or the highlights', async () => {
+    const page = await open('#title')
+    await search(page, 'preflight')
+    await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')))
+    expect(await highlighted(page)).toEqual({ all: 0, current: [] })
+    await page.emulateMedia({ media: 'print' })
+    expect(
+      await page.evaluate(
+        () => getComputedStyle(document.querySelector('.viewer-search') as Element).display,
+      ),
+    ).toBe('none')
+    await page.emulateMedia({ media: 'screen' })
+    await page.evaluate(() => window.dispatchEvent(new Event('afterprint')))
+    expect((await highlighted(page)).all).toBe(2)
   })
 })
 

@@ -90,5 +90,8 @@ Inside this repository, `pnpm dev`, `pnpm check:decks`, `pnpm build`… do the s
 | `←` `↑` `Shift+Space` `PageUp` `p` | previous slide |
 | `Home` / `End` | first / last slide |
 | `d` | toggle light/dark mode |
+| `Ctrl+F` (`Cmd+F`) | search every slide (highlights matches as you type) |
+| `F3` / `Shift+F3`, or `Enter` / `Shift+Enter` in the field | next / previous match |
+| `Esc` | close the search |
 
 Swipe left/right on touch screens. The 🔗 button copies a link to the current slide.

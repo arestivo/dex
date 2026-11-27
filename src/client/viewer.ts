@@ -11,6 +11,7 @@ import { trackIdle } from './idle.ts'
 import { type Action, listenForKeys } from './keyboard.ts'
 import { currentMode, onSystemModeChange, toggleMode } from './mode.ts'
 import { fragmentFor, resolveFragment } from './router.ts'
+import { createSearch } from './search-bar.ts'
 import { listenForSwipes } from './touch.ts'
 
 export function startViewer(deck: HTMLElement): void {
@@ -37,8 +38,8 @@ export function startViewer(deck: HTMLElement): void {
     if (announce) chrome.announce(slide.getAttribute('aria-label') ?? '')
   }
 
-  function go(index: number): void {
-    show(index)
+  function go(index: number, announce = true): void {
+    show(index, announce)
     history.replaceState(history.state, '', fragmentFor(ids[current] as string))
   }
 
@@ -76,6 +77,8 @@ export function startViewer(deck: HTMLElement): void {
   chrome.setDarkPressed(currentMode() === 'dark')
 
   window.addEventListener('hashchange', () => syncWithUrl(true))
+  // Before the navigation keys: they skip the keys the search handles.
+  createSearch(deck, slides, { current: () => current, show: (index) => go(index, false) })
   listenForKeys((action) => actions[action]())
   listenForSwipes(deck, (direction) => (direction === 'left' ? actions.next() : actions.previous()))
   onSystemModeChange(() => chrome.setDarkPressed(currentMode() === 'dark'))
