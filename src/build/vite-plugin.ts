@@ -63,6 +63,8 @@ const CONTENT_TYPES: Record<string, string> = {
   '.webm': 'video/webm',
   '.mp3': 'audio/mpeg',
   '.json': 'application/json',
+  '.html': 'text/html; charset=utf-8',
+  '.htm': 'text/html; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',
   '.zip': 'application/zip',
 }
