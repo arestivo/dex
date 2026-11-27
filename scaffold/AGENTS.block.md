@@ -50,7 +50,10 @@ dex new layout <name>   # create a local layout in layouts/<name>/ (--deck <slug
 dex new theme <name>    # create a local colour theme in themes/<name>/ (only when asked)
 dex init                # refresh these instructions and the skills after a Dex upgrade (keeps dex.yaml)
 dex init --theme <name> # set the folder's default theme in dex.yaml (only when asked)
+dex doctor              # check this machine for the tools Dex needs (Chromium, TeX) and how to install them
 ```
+
+When a diagram fails to render because TeX is missing or incomplete, or `dex fit`/`dex shot` can't find a browser, run `dex doctor` and report what it says to the user. Don't work around it (for example by replacing the diagram with an image).
 
 ### Done means
 

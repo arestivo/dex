@@ -104,18 +104,38 @@ export async function compileTikz(job: TexJob): Promise<TexResult> {
 /**
  * Extracts the first `file:line: message` error from a TeX log (written with
  * -file-line-error) and maps it to the block or a content-folder file.
+ * When that error is the "Emergency stop" TeX gives up with, the message is
+ * the `!` error before it, which says what went wrong (e.g. a missing file).
  */
 export function parseTexLog(log: string, inputs: ReadonlyMap<number, string>): TexError {
   const match = /^(?:\.\/)?([^\s:]+\.tex):(\d+): (.+)$/m.exec(log)
+  const bang = /^! (.+)$/m.exec(log)
   if (!match?.[1] || !match[2] || !match[3]) {
-    const bang = /^! (.+)$/m.exec(log)?.[1]
     return {
       file: 'block',
-      message: bang ?? 'TeX failed without an error message (see the TeX log).',
+      message: explain(bang?.[1] ?? 'TeX failed without an error message (see the TeX log).'),
     }
   }
-  const [, file, lineText, message] = match
-  const line = Number(lineText)
+  const cause =
+    match[3].startsWith('Emergency stop') && bang?.[1] !== undefined && bang.index < match.index
+      ? bang[1]
+      : match[3]
+  return locate(match[1], Number(match[2]), explain(cause), inputs)
+}
+
+/** Adds how to fix a file TeX can't find: it is almost always a missing package. */
+function explain(message: string): string {
+  const file = /File `([^']+)' not found/.exec(message)?.[1]
+  if (file === undefined) return message
+  return `${message} Install the TeX package that provides ${file} (\`dex doctor\` checks the ones Dex needs), or run dex inside the engine's Nix shell (nix develop).`
+}
+
+function locate(
+  file: string,
+  line: number,
+  message: string,
+  inputs: ReadonlyMap<number, string>,
+): TexError {
   if (file === BLOCK_FILE) return { file: 'block', line, message }
   if (file === 'main.tex') {
     // TeX blamed the wrapper (e.g. a brace left open to the end of a preamble):

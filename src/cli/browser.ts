@@ -1,28 +1,34 @@
 /**
- * Locates a Chromium executable for browser-based checks (`check:fit`,
- * e2e tests). We use the system browser instead of downloading one, which
- * keeps the toolchain reproducible under Nix.
+ * Locates a Chromium executable for browser-based checks (`dex fit`,
+ * `dex shot`, e2e tests). We use the system browser instead of downloading
+ * one, which keeps the toolchain reproducible under Nix.
  */
-import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { findProgram } from '../core/diagrams/toolchain.ts'
 
 const CANDIDATES = ['chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable']
 
-export function findChromium(): string {
-  const fromEnv = process.env.CHROMIUM_PATH
+export type ChromiumLookup = { readonly path: string } | { readonly problem: string }
+
+/** Finds Chromium (`CHROMIUM_PATH`, then PATH) without throwing. */
+export function locateChromium(env: NodeJS.ProcessEnv = process.env): ChromiumLookup {
+  const fromEnv = env.CHROMIUM_PATH
   if (fromEnv) {
-    if (existsSync(fromEnv)) return fromEnv
-    throw new Error(`CHROMIUM_PATH points to "${fromEnv}", which does not exist.`)
+    if (existsSync(fromEnv)) return { path: fromEnv }
+    return { problem: `CHROMIUM_PATH points to "${fromEnv}", which does not exist.` }
   }
   for (const name of CANDIDATES) {
-    try {
-      const path = execFileSync('which', [name], { encoding: 'utf8' }).trim()
-      if (path) return path
-    } catch {
-      // not on PATH; try the next candidate
-    }
+    const path = findProgram(name, env.PATH ?? '')
+    if (path !== undefined) return { path }
   }
-  throw new Error(
-    'No Chromium found. Install one (the Nix dev shell provides it) or set CHROMIUM_PATH.',
-  )
+  return {
+    problem: `No Chromium found on PATH (looked for ${CANDIDATES.join(', ')}). Install one (the Nix dev shell provides it) or set CHROMIUM_PATH.`,
+  }
+}
+
+/** Finds Chromium, or throws with how to provide one. */
+export function findChromium(): string {
+  const found = locateChromium()
+  if ('path' in found) return found.path
+  throw new Error(found.problem)
 }

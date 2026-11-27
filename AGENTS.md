@@ -75,7 +75,7 @@ src/core/                  build-time engine: pure TypeScript, no Vite
 src/build/vite-plugin.ts   Vite plugin: dev middleware, build emission, layouts and themes CSS
 src/build/site.ts          dev server / build / preview for a content folder
 src/client/                browser viewer (framework-free TS modules)
-src/cli/                   main.ts (the `dex` command), init.ts + scaffold.ts, new.ts, docs.ts, check.ts, fit.ts, shot.ts, browser.ts
+src/cli/                   main.ts (the `dex` command), init.ts + scaffold.ts, new.ts, docs.ts, check.ts, fit.ts, shot.ts, browser.ts, doctor.ts
 src/shared/                constants used by both Node and browser code
 styles/                    global CSS (see "CSS" below)
 docs/                      authoring.md (the format), layouts.md, themes.md (making layouts/themes): printed by `dex docs`

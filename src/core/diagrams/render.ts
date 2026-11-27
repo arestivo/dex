@@ -17,7 +17,7 @@ import { join, relative, sep } from 'node:path'
 import type { ModeColour } from '../model.ts'
 import { MODES, type Mode, paletteTex, parseColourTokens } from './palette.ts'
 import { compileTikz, type TexError, type TexJob, type TexResult } from './tex.ts'
-import { missingTexPrograms } from './toolchain.ts'
+import { describeMissingTex, type MissingTex, missingTex, texComplete } from './toolchain.ts'
 import { WRAPPER_VERSION } from './wrapper.ts'
 
 export const CACHE_DIR = join('.dex', 'cache', 'diagrams')
@@ -77,7 +77,7 @@ export function createTexRenderer(options: TexRendererOptions): DiagramRenderer 
   const tikzDir = join(root, 'tikz')
   const cacheDir = join(root, CACHE_DIR)
   const limit = options.concurrency ?? Math.max(1, Math.floor(availableParallelism() / 2))
-  let missing: string[] | undefined
+  let missing: MissingTex | undefined
 
   return async (deck, sources, colours = new Map()) => {
     const palette = palettesFor(colours)
@@ -111,12 +111,14 @@ export function createTexRenderer(options: TexRendererOptions): DiagramRenderer 
         }
       }
 
-      missing ??= missingTexPrograms(options.path)
-      if (options.compile === undefined && missing.length > 0) {
+      // Checked once, at the first diagram that needs TeX: cached decks never touch it.
+      missing ??=
+        options.compile === undefined ? missingTex(options.path) : { programs: [], files: [] }
+      if (!texComplete(missing)) {
         return {
           error: {
             file: 'block',
-            message: `This diagram is not rendered yet, and rendering needs TeX: ${missing.join(', ')} not found. Install them (see the README, "Requirements") or use the Nix shell (nix develop).`,
+            message: `This diagram is not rendered yet, and rendering needs TeX: ${describeMissingTex(missing)}. Install them (see the README, "Requirements"; \`dex doctor\` checks everything), or run dex inside the engine's Nix shell (nix develop).`,
           },
         }
       }

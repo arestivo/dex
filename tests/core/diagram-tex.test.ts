@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { paletteTex, parseColourTokens } from '../../src/core/diagrams/palette.ts'
 import { compileTikz, parseTexLog, type TexResult } from '../../src/core/diagrams/tex.ts'
-import { missingTexPrograms } from '../../src/core/diagrams/toolchain.ts'
+import { describeMissingTex, missingTex } from '../../src/core/diagrams/toolchain.ts'
 import { wrapperTex } from '../../src/core/diagrams/wrapper.ts'
 import { PROJECT_ROOT } from '../helpers.ts'
 
@@ -12,7 +12,7 @@ const palette = paletteTex(
   parseColourTokens(readFileSync(join(PROJECT_ROOT, 'styles/tokens.css'), 'utf8')),
   'light',
 )
-const missing = missingTexPrograms()
+const missing = describeMissingTex(missingTex())
 const picture = (body: string) => `\\begin{tikzpicture}\n${body}\n\\end{tikzpicture}`
 /** Whether an SVG uses the colour `hex` (RRGGBB), written in full or as #RGB. */
 const hasColour = (svg: string, hex: string) => {
@@ -67,6 +67,31 @@ describe('parseTexLog', () => {
     })
   })
 
+  it('reports the error before an Emergency stop, with an install hint for missing files', () => {
+    // Real log excerpts: TeX can't find a package loaded from the folder preamble.
+    const line = [...inputs].find(([, file]) => file === 'tikz/preamble.tex')?.[0]
+    const log = [
+      "! LaTeX Error: File `nosuchpkg.sty' not found.",
+      '',
+      'Type X to quit or <RETURN> to proceed,',
+      'Enter file name: ',
+      `./main.tex:${line}: Emergency stop.`,
+    ].join('\n')
+    expect(parseTexLog(log, inputs)).toEqual({
+      file: 'tikz/preamble.tex',
+      message: expect.stringMatching(
+        /^LaTeX Error: File `nosuchpkg\.sty' not found\. Install the TeX package that provides nosuchpkg\.sty .*nix develop/,
+      ),
+    })
+  })
+
+  it('reports a missing class at the block', () => {
+    const log = "! LaTeX Error: File `standalone.cls' not found.\n\n./main.tex:2: Emergency stop."
+    const error = parseTexLog(log, inputs)
+    expect(error.file).toBe('block')
+    expect(error.message).toMatch(/^LaTeX Error: File `standalone\.cls' not found\. Install/)
+  })
+
   it('falls back to the first "!" line', () => {
     expect(parseTexLog('! Emergency stop.', inputs)).toEqual({
       file: 'block',
@@ -75,7 +100,7 @@ describe('parseTexLog', () => {
   })
 })
 
-describe.skipIf(missing.length > 0)(`compileTikz (needs ${missing.join(', ') || 'TeX'})`, () => {
+describe.skipIf(missing !== '')(`compileTikz (needs TeX${missing ? `; ${missing}` : ''})`, () => {
   let folder: string
   beforeEach(() => {
     folder = mkdtempSync(join(tmpdir(), 'dex-tex-test-'))

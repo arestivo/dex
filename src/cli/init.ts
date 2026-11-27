@@ -42,5 +42,6 @@ export function runInit(content: ContentLocations, theme?: string): number {
     console.log(`${styleText(label.color, label.text.padEnd(width))}  ${change.path}${detail}`)
   }
   console.log(`\n${content.root} is ready. Agents: read AGENTS.md. Deck format: dex docs.`)
+  console.log('Check that this machine has the tools Dex needs (Chromium, TeX): dex doctor')
   return 0
 }

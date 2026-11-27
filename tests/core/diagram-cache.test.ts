@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -94,6 +102,30 @@ describe('diagram cache', () => {
     const real = createTexRenderer({ root, tokensCss, path: '' })
     const [outcome] = await real('talk', [A])
     expect(outcome).toHaveProperty('svg')
+  })
+
+  it('reports missing TeX files for uncached blocks, without running TeX', async () => {
+    // xelatex and dvisvgm exist, but kpsewhich finds none of the files diagrams load.
+    const bin = join(root, 'bin')
+    mkdirSync(bin)
+    for (const [name, body] of [
+      ['xelatex', 'exit 1'],
+      ['dvisvgm', 'exit 1'],
+      ['kpsewhich', 'exit 1'],
+    ] as const) {
+      writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`)
+      chmodSync(join(bin, name), 0o755)
+    }
+    const real = createTexRenderer({ root, tokensCss, path: bin })
+    const [outcome] = await real('talk', [A])
+    expect(outcome).toEqual({
+      error: {
+        file: 'block',
+        message: expect.stringMatching(
+          /needs TeX: TeX can't find standalone\.cls \(package standalone\), .*FiraSans\.sty \(package fira\).*nix develop/,
+        ),
+      },
+    })
   })
 
   it('reports missing programs for uncached blocks', async () => {

@@ -115,6 +115,7 @@ describe('planScaffold', () => {
     expect(read('AGENTS.md')).toContain('themes/<name>/')
     expect(read('AGENTS.md')).toContain('dex new theme <name>')
     expect(read('AGENTS.md')).toContain('dex docs themes')
+    expect(read('AGENTS.md')).toContain('dex doctor')
     expect(read('AGENTS.md')).toContain(
       "**The theme is the author's choice.** Don't change a deck's `theme:`, change `dex.yaml`, or create or edit themes unless the user asks.",
     )

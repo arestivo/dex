@@ -8,6 +8,7 @@ import { buildSite, startDevServer, startPreview } from '../build/site.ts'
 import { contentLocations } from '../core/config.ts'
 import { runCheck } from './check.ts'
 import { runDocs } from './docs.ts'
+import { runDoctor } from './doctor.ts'
 import { runFit } from './fit.ts'
 import { runInit } from './init.ts'
 import { runNew } from './new.ts'
@@ -24,7 +25,8 @@ Commands:
   check [slug...]       validate decks (no build)
   fit [slug...]         build, then report slides whose content does not fit
   shot <slug> [id...]   save slide images (light + dark) to .dex/shots/
-  docs [topic]          print the reference: authoring (default), layouts
+  docs [topic]          print the reference: authoring (default), layouts, themes
+  doctor                check this machine for what dex needs (Node, Chromium, TeX)
 
 Options:
   --folder <dir>        content folder containing decks/ (default: current folder)
@@ -102,6 +104,8 @@ async function main(argv: readonly string[]): Promise<number> {
       return runFit(content, args)
     case 'shot':
       return runShot(content, args)
+    case 'doctor':
+      return runDoctor()
     case 'docs':
       return runDocs(content, args[0], values.list === true, values.deck)
     default:

@@ -28,9 +28,21 @@ describe('dex --help', () => {
       'fit',
       'shot',
       'docs',
+      'doctor',
     ]) {
       expect(stdout).toMatch(new RegExp(`^ {2}${command}\\b`, 'm'))
     }
+  })
+})
+
+describe('dex doctor', () => {
+  it('reports the tools, exiting non-zero only when something is missing', async () => {
+    const { code, stdout } = await runDex(tmpdir(), 'doctor')
+    expect(stdout).toContain('What Dex needs on this machine:')
+    for (const name of ['Node.js', 'Chromium', 'TeX programs', 'TeX files']) {
+      expect(stdout).toMatch(new RegExp(`^(ok|missing|unchecked) +${name}`, 'm'))
+    }
+    expect(code).toBe(/^missing /m.test(stdout) ? 1 : 0)
   })
 })
 
@@ -50,6 +62,7 @@ describe('dex init', () => {
     expect(first.code).toBe(0)
     expect(first.stdout).toMatch(/created\s+AGENTS\.md/)
     expect(first.stdout).toMatch(/created\s+\.agents\/skills\/author-deck\//)
+    expect(first.stdout).toContain('dex doctor')
 
     const second = await runDex(folder, 'init')
     expect(second.code).toBe(0)

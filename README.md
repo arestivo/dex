@@ -46,7 +46,7 @@ sudo dnf install texlive-xetex texlive-fontspec texlive-standalone texlive-pgf \
 sudo tlmgr install standalone pgf pgfplots fontspec fira dvisvgm
 ```
 
-`dex check` tells you when a diagram needs rendering and TeX is missing.
+`dex doctor` checks all of the above (Node.js, Chromium, the TeX programs and packages) and says how to install what is missing. `dex check` also tells you when a diagram needs rendering and TeX is missing or incomplete.
 
 ## Setup
 
@@ -70,6 +70,7 @@ dex build             # static site in ./dist (or --dist ~/www/slides)
 dex preview           # serve the built site like a static host
 dex docs              # the deck format reference (dex docs layouts: the layouts)
 dex new layout quote  # a local layout in ./layouts/quote/
+dex doctor            # check this machine for Chromium and TeX, and how to install them
 ```
 
 Commit `.dex/cache/` with your decks: it holds the rendered diagrams, so other machines can build without TeX. Re-run `dex init` after upgrading Dex: it refreshes only the Dex-managed block in `AGENTS.md` and the Dex skills, and keeps your own notes and your `dex.yaml`.

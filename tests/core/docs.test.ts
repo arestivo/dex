@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { paletteTex, parseColourTokens } from '../../src/core/diagrams/palette.ts'
 import { compileTikz } from '../../src/core/diagrams/tex.ts'
-import { missingTexPrograms } from '../../src/core/diagrams/toolchain.ts'
+import { describeMissingTex, missingTex } from '../../src/core/diagrams/toolchain.ts'
 import { builtInLayouts, compile, PROJECT_ROOT } from '../helpers.ts'
 
 /** The fenced example under "## Example" in a layout's notes. */
@@ -66,9 +66,9 @@ describe('docs/authoring.md diagrams', () => {
     }
   })
 
-  const missing = missingTexPrograms()
-  it.skipIf(missing.length > 0)(
-    `compiles every tikz example in both themes (needs ${missing.join(', ') || 'TeX'})`,
+  const missing = describeMissingTex(missingTex())
+  it.skipIf(missing !== '')(
+    `compiles every tikz example in both themes (needs TeX${missing ? `; ${missing}` : ''})`,
     async () => {
       const folder = mkdtempSync(join(tmpdir(), 'dex-doc-examples-'))
       try {
