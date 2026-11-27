@@ -33,6 +33,33 @@ describe('renderDeckPage', () => {
     )
   })
 
+  it('hides the page until its script runs, with a loading indicator and a fallback', async () => {
+    const html = renderDeckPage(await compiledDeck(deck(slide('intro', '# Intro'))), assets)
+    expect(html).toContain('setAttribute("data-loading",\'\')')
+    expect(html).toMatch(/setTimeout\(function\(\)\{r\.removeAttribute\("data-loading"\)\},5000\)/)
+    expect(html).toContain(':root[data-loading] body{visibility:hidden}')
+    expect(html).toContain(':root[data-loading]::after{')
+    expect(html).toContain('@media (prefers-reduced-motion:reduce)')
+    // Every loading rule is scoped to the loading state (the style is unlayered).
+    const style = /<style>(.*)<\/style>/.exec(html)?.[1] ?? ''
+    const selectors = style
+      .replace(/@keyframes[^{]+\{[^}]*\{[^}]*\}\}/g, '')
+      .replace(/@media[^{]+\{/g, '')
+      .split(/\{[^}]*\}\}?/)
+      .filter((selector) => selector !== '')
+    expect(selectors.length).toBeGreaterThan(0)
+    for (const selector of selectors) expect(selector).toMatch(/^:root\[data-loading\]/)
+  })
+
+  it('does not hide pages without a script', () => {
+    const html = renderIndexPage(
+      [],
+      { scripts: [], styles: [] },
+      { title: 'Slides', deckHref: (slug) => `${slug}/` },
+    )
+    expect(html).not.toContain('data-loading')
+  })
+
   it('uses only relative URLs for its own files', async () => {
     const result = await compiledDeck(slide('a', '![](assets/x.svg)'), {
       assets: ['assets/x.svg'],

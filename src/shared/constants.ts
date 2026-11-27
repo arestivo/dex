@@ -11,3 +11,9 @@ export const LEGACY_MODE_STORAGE_KEY = 'dex:theme'
  * `data-mode`: the viewer already sets that on `.deck` (presentation vs document).
  */
 export const MODE_ATTRIBUTE = 'data-color-mode'
+
+/** On <html> while the page script hasn't run yet: content hidden, loading indicator shown. */
+export const LOADING_ATTRIBUTE = 'data-loading'
+
+/** After this long, a page whose script never ran is revealed anyway (as a document). */
+export const LOADING_FALLBACK_MS = 5000

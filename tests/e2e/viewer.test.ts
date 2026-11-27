@@ -122,6 +122,127 @@ describe('presentation mode', () => {
   })
 })
 
+describe('controls', () => {
+  const controlsShown = (page: Page) =>
+    page.evaluate(() => {
+      const opacity = (selector: string) =>
+        getComputedStyle(document.querySelector(selector) as Element).opacity
+      return { controls: opacity('.viewer-controls'), progress: opacity('.viewer-progress') }
+    })
+  const hidden = { controls: '0', progress: '0' }
+  const shown = { controls: '1', progress: '1' }
+  /** Waits for the opacity transitions to finish. */
+  const settle = (page: Page) => page.waitForTimeout(500)
+
+  it('start hidden and stay hidden while navigating with the keyboard', async () => {
+    const page = await open('#first')
+    await settle(page)
+    expect(await controlsShown(page)).toEqual(hidden)
+    for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight')
+    await settle(page)
+    expect(await current(page)).toBe('details')
+    expect(await controlsShown(page)).toEqual(hidden)
+  })
+
+  it('appear when the mouse moves, and hide again when it stops', async () => {
+    const page = await open('#first')
+    await page.mouse.move(200, 200)
+    await page.mouse.move(400, 300, { steps: 5 })
+    await settle(page)
+    expect(await controlsShown(page)).toEqual(shown)
+    await page.keyboard.press('ArrowRight')
+    await page.waitForTimeout(3000)
+    expect(await controlsShown(page)).toEqual(hidden)
+  })
+
+  it('show while a control has keyboard focus', async () => {
+    const page = await open('#first')
+    const inControls = () =>
+      page.evaluate(() => document.activeElement?.closest('.viewer-controls') !== null)
+    for (let i = 0; i < 5 && !(await inControls()); i++) await page.keyboard.press('Tab')
+    expect(await inControls()).toBe(true)
+    await settle(page)
+    expect((await controlsShown(page)).controls).toBe('1')
+  })
+})
+
+describe('loading indicator', () => {
+  /** Opens the deck with its script delayed (or failing), without waiting for it. */
+  const openLoading = async (
+    script: 'delay' | 'fail',
+    options: { colorScheme?: 'light' | 'dark' } = {},
+  ) => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, ...options })
+    const page = await context.newPage()
+    let release = () => {}
+    const released = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await page.route(/\/_app\/.*\.js$/, async (route) => {
+      if (script === 'fail') return route.abort()
+      await released
+      return route.continue()
+    })
+    await page.goto(`${DECK}#first`, { waitUntil: 'commit' })
+    await page.waitForSelector('body', { state: 'attached' })
+    return { page, release }
+  }
+  const state = (page: Page) =>
+    page.evaluate(() => {
+      const root = document.documentElement
+      const indicator = getComputedStyle(root, '::after')
+      return {
+        loading: root.hasAttribute('data-loading'),
+        body: getComputedStyle(document.body).visibility,
+        indicator: indicator.content,
+        delay: indicator.animationDelay,
+        text: getComputedStyle(root).color,
+        visibleSlides: [...document.querySelectorAll('.slide')].filter(
+          (slide) => getComputedStyle(slide).display !== 'none',
+        ).length,
+      }
+    })
+
+  it('hides the page behind a delayed spinner until the viewer is ready', async () => {
+    const { page, release } = await openLoading('delay')
+    await page.waitForTimeout(400)
+    expect(await state(page)).toMatchObject({
+      loading: true,
+      body: 'hidden',
+      indicator: '""',
+      delay: '0.3s, 0s',
+    })
+    release()
+    await page.waitForFunction(() => !document.documentElement.hasAttribute('data-loading'))
+    expect(await state(page)).toMatchObject({
+      body: 'visible',
+      indicator: 'none',
+      visibleSlides: 1,
+    })
+    expect(await current(page)).toBe('first')
+  })
+
+  it('follows the dark mode while loading', async () => {
+    const { page, release } = await openLoading('delay', { colorScheme: 'dark' })
+    expect((await state(page)).text).toBe('rgb(255, 255, 255)')
+    release()
+  })
+
+  it('reveals the document view when the script never runs', async () => {
+    const { page } = await openLoading('fail')
+    expect((await state(page)).loading).toBe(true)
+    await page.waitForFunction(() => !document.documentElement.hasAttribute('data-loading'), null, {
+      timeout: 8000,
+    })
+    expect(await state(page)).toMatchObject({ body: 'visible', visibleSlides: 12 })
+  })
+
+  it('never hides the page without JavaScript', async () => {
+    const page = await open('#first', { javaScriptEnabled: false })
+    expect(await state(page)).toMatchObject({ loading: false, body: 'visible', visibleSlides: 12 })
+  })
+})
+
 describe('slide numbers', () => {
   const number = (page: Page, id: string) =>
     page.evaluate((slideId) => {
