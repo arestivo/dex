@@ -119,6 +119,16 @@ describe('slideText and matchRange', () => {
     expect(rangesFor(element, 'decide')).toEqual(['Decide'])
   })
 
+  it('skips the slide number', () => {
+    const element = slide(
+      '<p>Version 12</p><div class="slide__number" aria-hidden="true">12 / 12</div>',
+    )
+    expect(rangesFor(element, '12')).toEqual(['12'])
+    expect(
+      rangesFor(slide('<p>No digits</p><div class="slide__number">12 / 12</div>'), '12'),
+    ).toEqual([])
+  })
+
   it('finds text inside code, across highlighted tokens', () => {
     const element = slide(
       '<pre><code><span>echo</span><span> </span><span>"Hello"</span></code></pre>',

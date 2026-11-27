@@ -3,7 +3,7 @@ import { DiagnosticBag } from '../../src/core/diagnostics.ts'
 import { scopeLayoutCss } from '../../src/core/layouts/css.ts'
 import { createLayout } from '../../src/core/layouts/load.ts'
 import type { Layout } from '../../src/core/model.ts'
-import { builtInLayouts, messages, slide, slidesHtml } from '../helpers.ts'
+import { builtInLayouts, compiledDeck, deck, messages, slide, slidesHtml } from '../helpers.ts'
 
 function layouts(templates: Record<string, string>): Map<string, Layout> {
   const bag = new DiagnosticBag()
@@ -110,6 +110,24 @@ describe('template variables', () => {
     const source = `---\ntitle: A <b> & B\nauthor: Ana Silva\n---\n\n${slide('intro', '', 'layout=vars')}`
     const [html] = await slidesHtml(source, { layouts: custom, frontMatter: false })
     expect(html).toContain('<p data-id="intro">A &#x3C;b> &#x26; B · Ana Silva · 1/1</p>')
+  })
+
+  it('adds the slide number after the layout content, hidden from assistive technology', async () => {
+    const source = deck(
+      slide('one', '# One'),
+      slide('two', '# Two', 'layout=section'),
+      slide('three', 'Text'),
+    )
+    const html = await slidesHtml(source)
+    const result = await compiledDeck(source)
+    expect(html[1]).toMatch(
+      /<\/div>\s*<div class="slide__number" aria-hidden="true">2 \/ 3<\/div><\/section>$/,
+    )
+    for (const [index, slideHtml] of html.entries()) {
+      expect(slideHtml.match(/class="slide__number"/g)).toHaveLength(1)
+      expect(slideHtml).toContain(`>${index + 1} / 3</div>`)
+    }
+    expect(result.slides[0]?.element.properties.ariaLabel).toBe('Slide 1 of 3: One')
   })
 
   it('does not interpolate slide content', async () => {

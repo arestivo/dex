@@ -113,6 +113,9 @@ export interface SlideText {
 /** Elements whose text is not searchable: diagrams are paths, not text. */
 const SKIPPED = new Set(['svg', 'script', 'style', 'template', 'noscript'])
 
+/** Classes whose text is not searchable: hidden text, and the slide number ("12 / 68"). */
+const SKIPPED_CLASSES = ['visually-hidden', 'slide__number']
+
 /** Elements that start a new block of text, so matches can't cross them. */
 const BLOCKS = new Set([
   'address',
@@ -167,7 +170,9 @@ export function slideText(slide: Element): SlideText {
       if (child.nodeType !== Node.ELEMENT_NODE) continue
       const element = child as Element
       const tag = element.localName
-      if (SKIPPED.has(tag) || element.classList.contains('visually-hidden')) continue
+      if (SKIPPED.has(tag) || SKIPPED_CLASSES.some((name) => element.classList.contains(name))) {
+        continue
+      }
       if (tag === 'br') {
         source += ' '
         continue

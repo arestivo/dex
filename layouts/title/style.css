@@ -31,3 +31,8 @@ h1 {
 .cover__footer {
   color: var(--color-inverse-muted);
 }
+
+/* The cover is not numbered (it still counts as slide 1). */
+.slide__number {
+  display: none;
+}

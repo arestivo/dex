@@ -49,6 +49,7 @@ Read "Making layouts" in `dex docs layouts` for the details. The rules that matt
 - Use design tokens (`--color-*`, `--space-*`, `--radius-*`) instead of raw colours and sizes, so light and dark mode, and every colour theme, work.
 - Size in `em`: slides scale with the window, and `em` scales with them. `cqh`/`cqw` are percentages of the slide.
 - No `@import` and no `@layer` (Dex adds the layer). Don't style anything outside the slide.
+- Every slide gets a `.slide__number` (`12 / 68`, bottom right, in the slide's text colour at 70%). Leave it unless the layout needs otherwise: hide it with `.slide__number { display: none; }` (as `title` does), or move it if the layout puts content in the bottom-right corner.
 
 ## 5. Document it (`layout.md`)
 

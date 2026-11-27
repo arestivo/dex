@@ -324,7 +324,7 @@ function slideElement(
     'slide.number': String(number),
     'slide.total': String(total),
   }
-  const children = fillTemplate(layout.template, content, values)
+  const children = [...fillTemplate(layout.template, content, values), slideNumber(number, total)]
   // Prefer the source heading; fall back to one the template supplied (e.g. {{deck.title}}).
   const title = slide.title || firstHeadingText(children)
   const label = `Slide ${number} of ${total}${title ? `: ${title}` : ''}`
@@ -343,6 +343,20 @@ function slideElement(
     children,
   }
   return { element, title }
+}
+
+/**
+ * The visible slide number, after the layout's content so layouts can
+ * style or hide it. Hidden from assistive technology: the slide's label
+ * already says "Slide n of N".
+ */
+function slideNumber(number: number, total: number): Element {
+  return {
+    type: 'element',
+    tagName: 'div',
+    properties: { className: ['slide__number'], ariaHidden: 'true' },
+    children: [{ type: 'text', value: `${number} / ${total}` }],
+  }
 }
 
 function firstHeadingText(nodes: readonly ElementContent[]): string {

@@ -18,4 +18,8 @@
   display: grid;
   gap: var(--space-3);
 }
+
+.slide__number {
+  display: none;
+}
 */

@@ -122,6 +122,77 @@ describe('presentation mode', () => {
   })
 })
 
+describe('slide numbers', () => {
+  const number = (page: Page, id: string) =>
+    page.evaluate((slideId) => {
+      const slide = document.getElementById(slideId) as Element
+      const element = slide.querySelector('.slide__number') as Element
+      const style = getComputedStyle(element)
+      const box = element.getBoundingClientRect()
+      const frame = slide.getBoundingClientRect()
+      return {
+        text: element.textContent,
+        visible: style.display !== 'none',
+        colour: style.color,
+        slideColour: getComputedStyle(slide).color,
+        opacity: style.opacity,
+        right: frame.right - box.right,
+        bottom: frame.bottom - box.bottom,
+        ariaHidden: element.getAttribute('aria-hidden'),
+      }
+    }, id)
+
+  it('shows n / N in the bottom-right corner, in the slide text colour at 70%', async () => {
+    const page = await open('#first')
+    const shown = await number(page, 'first')
+    expect(shown).toMatchObject({
+      text: '4 / 12',
+      visible: true,
+      opacity: '0.7',
+      ariaHidden: 'true',
+    })
+    expect(shown.colour).toBe(shown.slideColour)
+    expect(shown.right).toBeGreaterThan(0)
+    expect(shown.right).toBeLessThan(40)
+    expect(shown.bottom).toBeGreaterThan(0)
+    expect(shown.bottom).toBeLessThan(30)
+  })
+
+  it('hides it on title slides and uses the light text colour on section slides', async () => {
+    const page = await open('#title')
+    expect((await number(page, 'title')).visible).toBe(false)
+    await page.keyboard.press('ArrowRight')
+    const section = await number(page, 'index')
+    expect(section.visible).toBe(true)
+    expect(section.colour).toBe(section.slideColour)
+    expect(section.colour).not.toBe((await number(page, 'first')).slideColour)
+  })
+
+  it('numbers every slide but the title without JavaScript', async () => {
+    const page = await open('', { javaScriptEnabled: false })
+    const visible = await page.$$eval('.slide__number', (all) =>
+      all
+        .filter((element) => getComputedStyle(element).display !== 'none')
+        .map((e) => e.textContent),
+    )
+    expect(visible).toEqual(Array.from({ length: 11 }, (_, index) => `${index + 2} / 12`))
+  })
+
+  it('prints the numbers', async () => {
+    const page = await open('#first')
+    await page.emulateMedia({ media: 'print' })
+    expect((await number(page, 'second')).visible).toBe(true)
+    expect((await number(page, 'title')).visible).toBe(false)
+  })
+
+  it('is not matched by the search', async () => {
+    const page = await open('#title')
+    await page.keyboard.press('Control+f')
+    await page.keyboard.type('/ 12')
+    expect(await page.textContent('.viewer-search__count')).toBe('No matches')
+  })
+})
+
 describe('search', () => {
   const count = (page: Page) => page.textContent('.viewer-search__count')
   const barHidden = (page: Page) =>

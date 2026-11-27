@@ -64,6 +64,7 @@ Missing optional values are empty, and unknown variables are errors. Variables a
 
 - `header.slide__header` holds the title and is hidden when empty;
 - `div.slide__body` holds the main content and scrolls if it overflows;
+- `div.slide__number` is added by Dex after your template, in every slide: `12 / 68` in the bottom-right corner, in the slide's text colour at 70% opacity, so it follows your layout's text colour. Hide it with `.slide__number { display: none; }` (the built-in `title` layout does) or restyle it the same way, e.g. `opacity: 1`;
 - name layout-specific elements BEM-style (`.quote__source`). Blocks with `__` in their class don't get the automatic spacing that content blocks get.
 
 ## style.css

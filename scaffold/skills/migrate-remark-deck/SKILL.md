@@ -34,6 +34,7 @@ Ask only if the source is missing or ambiguous.
 | --- | --- |
 | `name: x` + `layout: true` template slides (`inverse`, `normal`) | Drop them. Layouts replace templates. |
 | `.indexlink[...]` navigation icons | Drop. The viewer has its own controls. |
+| `slideNumberFormat` or hand-written slide numbers | Drop. Dex numbers every slide (`12 / 68`), except title slides. |
 | first `template: inverse` slide (deck title + author) | `::slide{#title layout=title}`. Put the title, subtitle and author in the front matter; use `::slot{name=footer}` for an author link. |
 | `template: inverse` + `name: x` (chapter divider) | `::slide{#x layout=section}` |
 | index slide with `.indexlist[ 1. [A](#a) ... ]` | `::slide{#index layout=section}` + `# Index` + `::toc` (check that the generated list matches the old one) |

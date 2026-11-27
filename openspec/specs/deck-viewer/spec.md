@@ -163,7 +163,7 @@ In presentation mode, `Ctrl+F` (`Cmd+F` on macOS) SHALL open a search bar in the
 
 ### Requirement: Search as you type
 
-Each change to the search text SHALL search the text of every slide in the deck, ignoring case and accents, and SHALL highlight every match. The current match SHALL be the first one on or after the shown slide, and the viewer SHALL show its slide. Text in pre-rendered diagrams is not searchable. An empty field SHALL remove the highlights.
+Each change to the search text SHALL search the text of every slide in the deck, ignoring case and accents, and SHALL highlight every match. The current match SHALL be the first one on or after the shown slide, and the viewer SHALL show its slide. Text in pre-rendered diagrams and slide numbers are not searchable. An empty field SHALL remove the highlights.
 
 #### Scenario: Match on a later slide
 - **WHEN** slide 2 is shown and the user types `preflight`, which first appears on slide 7
@@ -176,6 +176,10 @@ Each change to the search text SHALL search the text of every slide in the deck,
 #### Scenario: Match across formatting
 - **WHEN** a slide contains `**pre**flight` and the user types `preflight`
 - **THEN** the whole word is one highlighted match
+
+#### Scenario: Slide numbers are not matched
+- **WHEN** the deck has 12 slides, only slide 3 contains `12` in its text, and the user types `12`
+- **THEN** there is exactly one match, on slide 3
 
 ### Requirement: Move between matches
 
@@ -228,3 +232,23 @@ The search bar SHALL use the viewer chrome colours, and match highlights SHALL u
 #### Scenario: Printing during a search
 - **WHEN** the user prints while matches are highlighted
 - **THEN** the printed slides show no highlights and no search bar
+
+### Requirement: Slide numbers
+
+Every slide SHALL show its position and the number of slides (`12 / 68`) in its bottom-right corner, inside the slide, unless its layout hides it. The number SHALL be part of the built page: it SHALL appear in presentation mode, in the no-JavaScript document view and in print, and scale with the slide. Assistive technology SHALL not read it, because each slide is already labelled with its position.
+
+#### Scenario: Presentation mode
+- **WHEN** slide 12 of a 68-slide deck is shown
+- **THEN** `12 / 68` appears in the slide's bottom-right corner
+
+#### Scenario: Printed
+- **WHEN** the user prints the deck
+- **THEN** each printed slide shows its number, except those whose layout hides it
+
+#### Scenario: Without JavaScript
+- **WHEN** the deck page loads with JavaScript disabled
+- **THEN** every slide in the document shows its number
+
+#### Scenario: Screen reader
+- **WHEN** a screen reader reads slide 12
+- **THEN** it announces "Slide 12 of 68" once, without reading `12 / 68`

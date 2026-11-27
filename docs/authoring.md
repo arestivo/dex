@@ -81,6 +81,8 @@ The declaration takes:
 | `layout=name` | the layout (see `dex docs layouts`) | `default` |
 | `.class` | extra classes on the slide, e.g. `.small` | none |
 
+**Slide numbers.** Dex shows each slide's position (`12 / 68`) in its bottom-right corner, on screen, without JavaScript and in print. Title slides (`layout=title`) don't show it but still count as slide 1. Don't number slides by hand.
+
 ## Slide ids and deep links
 
 Every slide is reachable at `<deck-url>#<id>`, e.g. `/http/#cors-preflight`. Ids:
