@@ -13,6 +13,8 @@ To see the themes you can already use, run `dex docs themes`.
   theme: slate
   ```
 
+  `dex init` writes this file with `theme: default` when the folder has none, and `dex init --theme slate` writes (or changes) the theme in it. Otherwise `dex init` leaves an existing `dex.yaml` as it is.
+
 - Otherwise, decks use `default`.
 
 Changing a deck's theme re-renders its diagrams once (with TeX), because they are drawn in the theme's colours.

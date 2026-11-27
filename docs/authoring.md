@@ -25,7 +25,7 @@ This is the complete reference for the deck format. Each deck is one Markdown fi
       assets/           ← images and other files the deck uses
         request.svg
   themes/               ← local colour themes (optional, see `dex docs themes`)
-  dex.yaml              ← folder settings (optional): `theme: <name>`
+  dex.yaml              ← folder settings (`dex init` writes it): `theme: <name>`
   dist/                 ← `dex build` output (or --dist <dir>)
 ```
 

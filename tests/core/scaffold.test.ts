@@ -23,6 +23,8 @@ import {
   staleInstructions,
 } from '../../src/cli/scaffold.ts'
 import { contentLocations, ENGINE_ROOT } from '../../src/core/config.ts'
+import { DiagnosticBag } from '../../src/core/diagnostics.ts'
+import { parseSettings } from '../../src/core/settings.ts'
 
 const kinds = (changes: readonly PlannedChange[]) =>
   Object.fromEntries(changes.map((change) => [change.path, change.kind]))
@@ -93,6 +95,7 @@ describe('planScaffold', () => {
       'AGENTS.md': 'create',
       'CLAUDE.md': 'create',
       '.gitignore': 'create',
+      'dex.yaml': 'create',
       '.agents/skills/author-deck/': 'create',
       '.claude/skills/author-deck': 'create',
       '.agents/skills/author-layout/': 'create',
@@ -233,6 +236,79 @@ describe('planScaffold', () => {
     expect(plan.errors[0]).toMatch(/malformed Dex markers/)
     expect(() => applyScaffold(plan)).toThrow(/malformed/)
     expect(existsSync(join(root, 'decks'))).toBe(false)
+  })
+
+  it('writes a starter dex.yaml that dex check accepts', () => {
+    init()
+    const text = read('dex.yaml')
+    expect(text).toContain('theme: default\n')
+    expect(text).toContain('dex docs themes')
+    const diagnostics = new DiagnosticBag()
+    expect(parseSettings(text, 'dex.yaml', diagnostics)).toEqual({ theme: 'default' })
+    expect(diagnostics.items).toEqual([])
+  })
+
+  it('leaves an existing dex.yaml alone and never counts it as stale', () => {
+    writeFileSync(join(root, 'dex.yaml'), 'theme: forest\n')
+    expect(kinds(planScaffold(content()).changes)['dex.yaml']).toBe('unchanged')
+    init()
+    expect(read('dex.yaml')).toBe('theme: forest\n')
+    expect(staleInstructions(content())).toEqual([])
+  })
+
+  describe('with a theme', () => {
+    const available = ['default', 'forest', 'slate', 'ocean']
+    const plan = (name: string) => planScaffold(content(), { theme: { name, available } })
+
+    it('writes the theme into the starter', () => {
+      const result = plan('slate')
+      expect(kinds(result.changes)['dex.yaml']).toBe('create')
+      applyScaffold(result)
+      expect(read('dex.yaml')).toContain('theme: slate\n')
+      expect(read('dex.yaml')).toContain('dex docs themes')
+      expect(read('dex.yaml')).not.toContain('theme: default')
+    })
+
+    it('sets the theme in an existing file, keeping comments and other keys', () => {
+      writeFileSync(join(root, 'dex.yaml'), '# Our colours.\ntheme: forest # chosen in May\n')
+      const result = plan('ocean')
+      expect(kinds(result.changes)['dex.yaml']).toBe('update')
+      applyScaffold(result)
+      expect(read('dex.yaml')).toBe('# Our colours.\ntheme: ocean # chosen in May\n')
+    })
+
+    it('reports the same theme as unchanged', () => {
+      writeFileSync(join(root, 'dex.yaml'), 'theme: slate\n')
+      expect(kinds(plan('slate').changes)['dex.yaml']).toBe('unchanged')
+    })
+
+    it('adds the theme to an empty file', () => {
+      writeFileSync(join(root, 'dex.yaml'), '')
+      applyScaffold(plan('slate'))
+      expect(read('dex.yaml')).toBe('theme: slate\n')
+    })
+
+    it('rejects an unknown theme, listing the available ones, and writes nothing', () => {
+      const result = plan('nope')
+      expect(result.errors).toEqual([
+        'Unknown theme "nope". Available: default, forest, ocean, slate. Run `dex docs themes` to see them.',
+      ])
+      expect(() => applyScaffold(result)).toThrow(/Unknown theme/)
+      expect(existsSync(join(root, 'decks'))).toBe(false)
+      expect(existsSync(join(root, 'dex.yaml'))).toBe(false)
+    })
+
+    it.each([
+      ['invalid YAML', 'theme: [\n', /dex.yaml can't be read: invalid YAML/],
+      ['a list', '- slate\n', /dex.yaml can't be read: it must be a YAML mapping/],
+    ])('rejects a dex.yaml with %s and writes nothing', (_, text, message) => {
+      writeFileSync(join(root, 'dex.yaml'), text)
+      const result = plan('slate')
+      expect(result.errors[0]).toMatch(message)
+      expect(result.errors[0]).toMatch(/Fix or delete it, then run dex init again\.$/)
+      expect(existsSync(join(root, 'decks'))).toBe(false)
+      expect(read('dex.yaml')).toBe(text)
+    })
   })
 
   it('has no stale instructions in a folder that was never initialised', () => {

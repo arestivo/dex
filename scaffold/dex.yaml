@@ -1,0 +1,6 @@
+# Settings for this Dex content folder. `dex check` validates this file.
+
+# The colours of every deck here that doesn't pick its own `theme:` in its
+# front matter, and of the index page. `dex docs themes` lists the themes
+# (each has a light and a dark version) and explains how to make your own.
+theme: default

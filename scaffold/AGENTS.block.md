@@ -12,7 +12,7 @@ decks/<slug>/assets/       images and files that deck uses
 decks/<slug>/layouts/      layouts only that deck uses (same files as local layouts)
 layouts/<name>/            local layouts for every deck here (template.html, style.css, layout.md)
 themes/<name>/             local colour themes (theme.css, theme.md)
-dex.yaml                   folder settings: `theme: <name>` is the default theme of every deck here
+dex.yaml                   folder settings (written by dex init): `theme: <name>` is the default theme of every deck here
 tikz/preamble.tex          shared TikZ styles and macros for every deck's diagrams
 decks/<slug>/tikz.tex      one deck's own TikZ styles (loaded after tikz/preamble.tex)
 .dex/cache/                rendered diagrams: commit it, so builds need TeX only for new ones
@@ -48,7 +48,8 @@ dex build               # build the site into dist/
 dex docs [topic]        # the reference (see above)
 dex new layout <name>   # create a local layout in layouts/<name>/ (--deck <slug>: in that deck)
 dex new theme <name>    # create a local colour theme in themes/<name>/ (only when asked)
-dex init                # refresh these instructions and the skills after a Dex upgrade
+dex init                # refresh these instructions and the skills after a Dex upgrade (keeps dex.yaml)
+dex init --theme <name> # set the folder's default theme in dex.yaml (only when asked)
 ```
 
 ### Done means

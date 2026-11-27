@@ -1,9 +1,11 @@
 /**
  * `dex init`: prepares a content folder for people and agents (see
  * scaffold.ts). Prints one line per path. Returns the exit code.
+ * `--theme <name>` also sets the folder's default theme in dex.yaml.
  */
 import { styleText } from 'node:util'
 import type { ContentLocations } from '../core/config.ts'
+import { loadWorkspaceThemes } from '../core/workspace.ts'
 import { applyScaffold, type ChangeKind, planScaffold } from './scaffold.ts'
 
 const LABELS: Record<ChangeKind, { text: string; color: Parameters<typeof styleText>[0] }> = {
@@ -14,8 +16,18 @@ const LABELS: Record<ChangeKind, { text: string; color: Parameters<typeof styleT
   skipped: { text: 'skipped', color: 'yellow' },
 }
 
-export function runInit(content: ContentLocations): number {
-  const plan = planScaffold(content)
+export function runInit(content: ContentLocations, theme?: string): number {
+  const plan = planScaffold(
+    content,
+    theme === undefined
+      ? {}
+      : {
+          theme: {
+            name: theme,
+            available: [...loadWorkspaceThemes({ root: content.root }).themes.keys()],
+          },
+        },
+  )
   if (plan.errors.length > 0) {
     for (const error of plan.errors) console.error(styleText('red', error))
     console.error('Nothing was written.')

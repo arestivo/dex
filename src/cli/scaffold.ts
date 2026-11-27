@@ -3,6 +3,8 @@
  *
  * Everything Dex writes is either inside the managed block of AGENTS.md
  * (between the markers) or a skill whose SKILL.md says `generatedBy: dex`.
+ * `dex.yaml` is only a starter: once it exists it is the author's, and
+ * `dex init` changes it only to set the theme passed with `--theme`.
  * The plan compares the desired state of each path with what is on disk, so
  * the same code drives `dex init` (apply the plan) and the `dex check`
  * warning (are existing managed files out of date?).
@@ -20,8 +22,8 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { dirname, isAbsolute, join, relative, sep } from 'node:path'
-import { parse as parseYaml } from 'yaml'
-import { type ContentLocations, DECKS_FOLDER, ENGINE_ROOT } from '../core/config.ts'
+import { isMap, parseDocument, parse as parseYaml } from 'yaml'
+import { type ContentLocations, DECKS_FOLDER, ENGINE_ROOT, SETTINGS_FILE } from '../core/config.ts'
 
 export const BLOCK_START = '<!-- dex:start -->'
 export const BLOCK_END = '<!-- dex:end -->'
@@ -130,8 +132,16 @@ export interface ScaffoldPlan {
 export interface ScaffoldOptions {
   /** Engine root, for the "not in the engine repository" guard. */
   readonly engineRoot?: string
-  /** Templates folder (`AGENTS.block.md`, `skills/`). */
+  /** Templates folder (`AGENTS.block.md`, `skills/`, `dex.yaml`). */
   readonly scaffoldDir?: string
+  /** The folder theme to write into `dex.yaml` (`dex init --theme`). */
+  readonly theme?: InitTheme
+}
+
+export interface InitTheme {
+  readonly name: string
+  /** Every theme the folder can use (built-in and local). */
+  readonly available: readonly string[]
 }
 
 interface Skill extends SkillInfo {
@@ -165,6 +175,12 @@ export function planScaffold(
     planAgentsFile(root, block, errors),
     planClaudeFile(root),
     planGitignore(content),
+    planSettingsFile(
+      root,
+      readFileSync(join(scaffoldDir, SETTINGS_FILE), 'utf8'),
+      options.theme,
+      errors,
+    ),
     ...planSkills(root, skills),
   ]
   return { changes, errors }
@@ -250,6 +266,50 @@ function planGitignore(content: ContentLocations): PlannedChange {
     ...fileChange(GITIGNORE_FILE, file, existing, desired, false),
     ...(detail ? { detail } : {}),
   }
+}
+
+function planSettingsFile(
+  root: string,
+  starter: string,
+  theme: InitTheme | undefined,
+  errors: string[],
+): PlannedChange {
+  const file = join(root, SETTINGS_FILE)
+  const existing = readIfExists(file)
+  // Not managed: an existing dex.yaml is the author's, never restored or "stale".
+  if (theme === undefined)
+    return fileChange(SETTINGS_FILE, file, existing, existing ?? starter, false)
+
+  const skip = (error: string): PlannedChange => {
+    errors.push(error)
+    return { path: SETTINGS_FILE, kind: 'skipped', detail: error, managed: false }
+  }
+  if (!theme.available.includes(theme.name)) {
+    return skip(
+      `Unknown theme "${theme.name}". Available: ${[...theme.available].sort().join(', ')}. Run \`dex docs themes\` to see them.`,
+    )
+  }
+  const edited = withTheme(existing ?? starter, theme.name)
+  if ('error' in edited) {
+    return skip(
+      `${SETTINGS_FILE} can't be read: ${edited.error} Fix or delete it, then run dex init again.`,
+    )
+  }
+  return fileChange(SETTINGS_FILE, file, existing, edited.content, false)
+}
+
+/** Sets `theme` in a settings file, keeping its comments and other keys. */
+export function withTheme(text: string, theme: string): MergeResult {
+  const document = parseDocument(text)
+  const [problem] = document.errors
+  if (problem !== undefined)
+    return { error: `invalid YAML (${problem.message.split('\n')[0]?.replace(/:$/, '')}).` }
+  if (document.contents !== null && !isMap(document.contents)) {
+    return { error: 'it must be a YAML mapping, e.g. `theme: slate`.' }
+  }
+  if (document.get('theme') === theme) return { content: text }
+  document.set('theme', theme)
+  return { content: document.toString() }
 }
 
 function planSkills(root: string, skills: readonly Skill[]): PlannedChange[] {

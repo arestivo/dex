@@ -31,6 +31,7 @@ Options:
   --dist <dir>          output folder for the site (default: <folder>/dist)
   --port <n>            port for dev and preview
   --deck <slug>         with new layout and docs layouts: that deck's own layouts
+  --theme <name>        with init: the folder's default theme, written to dex.yaml
   --list                with docs: list the topics
   -h, --help            show this help
 `
@@ -45,6 +46,7 @@ async function main(argv: readonly string[]): Promise<number> {
       dist: { type: 'string' },
       port: { type: 'string' },
       deck: { type: 'string' },
+      theme: { type: 'string' },
       list: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
@@ -71,6 +73,11 @@ async function main(argv: readonly string[]): Promise<number> {
     return 1
   }
 
+  if (values.theme !== undefined && command !== 'init') {
+    console.error(`--theme only works with \`init\`.\n\n${USAGE}`)
+    return 1
+  }
+
   switch (command) {
     case 'dev': {
       const server = await startDevServer(content, { port })
@@ -86,7 +93,7 @@ async function main(argv: readonly string[]): Promise<number> {
       return 0
     }
     case 'init':
-      return runInit(content)
+      return runInit(content, values.theme)
     case 'new':
       return runNew(content, args[0], args[1], values.deck)
     case 'check':

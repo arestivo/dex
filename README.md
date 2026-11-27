@@ -60,7 +60,8 @@ alias dex="node $PWD/src/cli/main.ts"
 
 ```sh
 mkdir ~/talks && cd ~/talks
-dex init              # decks/, .gitignore, AGENTS.md + skills for AI agents
+dex init              # decks/, dex.yaml, .gitignore, AGENTS.md + skills for AI agents
+dex init --theme slate  # the same, with slate as the folder's default theme
 dex dev               # http://localhost:5173/  →  /http/
 dex check             # validate every deck (or: dex check http)
 dex fit               # find slides whose content doesn't fit (needs Chromium)
@@ -71,7 +72,7 @@ dex docs              # the deck format reference (dex docs layouts: the layouts
 dex new layout quote  # a local layout in ./layouts/quote/
 ```
 
-Commit `.dex/cache/` with your decks: it holds the rendered diagrams, so other machines can build without TeX. Re-run `dex init` after upgrading Dex: it refreshes only the Dex-managed block in `AGENTS.md` and the Dex skills, and keeps your own notes.
+Commit `.dex/cache/` with your decks: it holds the rendered diagrams, so other machines can build without TeX. Re-run `dex init` after upgrading Dex: it refreshes only the Dex-managed block in `AGENTS.md` and the Dex skills, and keeps your own notes and your `dex.yaml`.
 
 Inside this repository, `pnpm dev`, `pnpm check:decks`, `pnpm build`… do the same with the repository as the content folder. Its `decks/` and `dist/` are git-ignored, for local testing only.
 

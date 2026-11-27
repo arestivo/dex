@@ -57,6 +57,46 @@ describe('dex init', () => {
     expect(second.stdout).toMatch(/unchanged\s+AGENTS\.md/)
   })
 
+  it('writes the --theme into dex.yaml, and the build uses it', async () => {
+    const { code, stdout } = await runDex(folder, 'init', '--theme', 'slate')
+    expect(code).toBe(0)
+    expect(stdout).toMatch(/created\s+dex\.yaml/)
+    expect(readFileSync(join(folder, 'dex.yaml'), 'utf8')).toContain('theme: slate\n')
+
+    mkdirSync(join(folder, 'decks/demo'), { recursive: true })
+    writeFileSync(
+      join(folder, 'decks/demo/slides.md'),
+      '---\ntitle: Demo\n---\n\n::slide{#start}\n\n# Hello\n',
+    )
+    const build = await runDex(folder, 'build')
+    expect(build.code).toBe(0)
+    expect(readFileSync(join(folder, 'dist/demo/index.html'), 'utf8')).toContain(
+      'data-theme="slate"',
+    )
+  })
+
+  it('accepts a local theme for --theme', async () => {
+    cpSync(join(FIXTURES, 'themes/themes'), join(folder, 'themes'), { recursive: true })
+    const { code, stdout } = await runDex(folder, 'init', '--theme', 'ocean')
+    expect(code).toBe(0)
+    expect(stdout).toMatch(/created\s+dex\.yaml/)
+    expect(readFileSync(join(folder, 'dex.yaml'), 'utf8')).toContain('theme: ocean\n')
+  })
+
+  it('rejects an unknown --theme and writes nothing', async () => {
+    const { code, stderr } = await runDex(folder, 'init', '--theme', 'nope')
+    expect(code).toBe(1)
+    expect(stderr).toContain('Unknown theme "nope". Available: default, ember, forest,')
+    expect(stderr).toContain('Nothing was written.')
+    expect(readdirSync(folder)).toEqual([])
+  })
+
+  it('rejects --theme with other commands', async () => {
+    const { code, stderr } = await runDex(folder, 'build', '--theme', 'slate')
+    expect(code).toBe(1)
+    expect(stderr).toContain('--theme only works with `init`.')
+  })
+
   it('accepts --folder', async () => {
     const { code } = await runDex(PROJECT_ROOT, 'init', '--folder', folder)
     expect(code).toBe(0)
