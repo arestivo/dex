@@ -25,6 +25,9 @@ function viteConfig(content: ContentLocations, options: SiteOptions): InlineConf
     configFile: false,
     logLevel: options.logLevel ?? 'info',
     plugins: [dex({ content })],
+    // Compiling the decks in the plugin's buildStart is the build's real work,
+    // so Rolldown's "plugin took most of the build" timing warning is noise.
+    build: { rolldownOptions: { checks: { bundlerTimings: false } } },
     ...(options.port === undefined
       ? {}
       : {
