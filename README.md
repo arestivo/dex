@@ -91,9 +91,12 @@ Inside this repository, `pnpm dev`, `pnpm check:decks`, `pnpm build`… do the s
 | `←` `↑` `Shift+Space` `PageUp` `p` | hide the last shown step, then previous slide |
 | `Home` / `End` | first / last slide |
 | `d` | toggle light/dark mode |
+| `f` | fullscreen on or off |
+| `b` or `.` | blank the audience's screen in the slides' background colour, or bring the slide back (also `Esc`); from the presenter window it blanks the deck window |
 | `Ctrl+F` (`Cmd+F`) | search every slide (highlights matches as you type) |
 | `F3` / `Shift+F3`, or `Enter` / `Shift+Enter` in the field | next / previous match |
 | `Esc` | close the search |
 | `s` | open the presenter window (current and next slides, speaker notes, timer); both windows stay on the same slide and step |
+| `?` or `h` | list the shortcuts of the window you're in |
 
 Swipe left/right on touch screens. The 🔗 button copies a link to the current slide.

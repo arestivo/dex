@@ -1,0 +1,93 @@
+/*
+ * The blank screen (b, .) and the shortcut help (?, h). Sized in rem: viewer
+ * chrome, not slide content.
+ */
+@layer viewer {
+  /* The slides' background colour: it follows the theme and the light/dark mode. */
+  .viewer-blank {
+    display: none;
+  }
+
+  :root[data-blank] .viewer-blank {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: block;
+    background: var(--color-bg);
+    cursor: none;
+  }
+
+  :root[data-blank] :is(.viewer-controls, .viewer-progress, .viewer-toast) {
+    visibility: hidden;
+  }
+
+  .presenter__blank {
+    padding: 0.15rem 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-bg);
+    background: var(--color-accent);
+    border-radius: 999px;
+  }
+
+  .viewer-help {
+    /* The reset zeroes margins; a modal dialog centres itself with auto ones. */
+    margin: auto;
+    width: min(36rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    padding: 1.25rem 1.5rem;
+    overflow: auto;
+    font-size: 1rem;
+    color: var(--color-text);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    box-shadow: var(--chrome-shadow);
+  }
+
+  /* Focus lands on the dialog itself: no ring around the whole box. */
+  .viewer-help:focus {
+    outline: none;
+  }
+
+  .viewer-help::backdrop {
+    background: color-mix(in srgb, var(--color-page) 70%, transparent);
+  }
+
+  .viewer-help__title {
+    margin-block-end: 0.75rem;
+    font-size: 1.25rem;
+  }
+
+  .viewer-help__heading {
+    margin-block: 1rem 0.5rem;
+    font-size: 1rem;
+    color: var(--color-muted);
+  }
+
+  .viewer-help__list {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.4rem 1rem;
+    align-items: baseline;
+  }
+
+  .viewer-help__key {
+    display: inline-block;
+    min-width: 1.6em;
+    margin-block: 0.1rem;
+    padding: 0.05rem 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    text-align: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.3rem;
+  }
+
+  .viewer-help__hint {
+    margin-block-start: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-muted);
+  }
+}

@@ -8,6 +8,8 @@
  * is shown as the audience will first see it, with its steps hidden.
  */
 import { button, element } from './chrome.ts'
+import { toggleFullscreen } from './fullscreen.ts'
+import { createHelp } from './help.ts'
 import { type Action, listenForKeys } from './keyboard.ts'
 import { toggleMode } from './mode.ts'
 import { fragmentFor, resolveFragment } from './router.ts'
@@ -34,6 +36,8 @@ export function startPresenter(deck: HTMLElement): void {
   const notesPublished = deck.dataset.notes !== 'omitted'
   let current = -1
   let revealed = 0
+  /** Whether the audience's (deck) window is blank: the presenter keeps their view. */
+  let blank = false
   const stepCounts = slides.map((slide) => stepsOf(slide).length)
   let sync: SlideSync | undefined
   let timer: TimerState = IDLE_TIMER
@@ -69,6 +73,18 @@ export function startPresenter(deck: HTMLElement): void {
     renderTimer()
   })
   const clock = element('span', 'presenter__clock', { 'aria-label': 'Current time' })
+  const blankBadge = element('span', 'presenter__blank', { role: 'status' })
+  blankBadge.textContent = 'Screen is blank'
+  blankBadge.hidden = true
+  const help = createHelp('presenter', [
+    {
+      title: 'Presenter window',
+      entries: [
+        { shown: ['Start', 'Pause', 'Resume'], label: 'Timer: start, pause or resume it' },
+        { shown: ['Reset'], label: 'Timer: back to zero' },
+      ],
+    },
+  ])
 
   const next = element('section', 'presenter__next')
   const nextLabel = element('h2', 'presenter__label')
@@ -83,6 +99,7 @@ export function startPresenter(deck: HTMLElement): void {
     button('previous', 'Previous slide', moveBack),
     position,
     button('next', 'Next slide', moveForward),
+    blankBadge,
     timerBox,
     clock,
   )
@@ -123,7 +140,17 @@ export function startPresenter(deck: HTMLElement): void {
       timer = startOnce(timer, performance.now())
       renderTimer()
     }
-    sync?.publish(slide.id, 0)
+    publish()
+  }
+
+  function publish(): void {
+    sync?.publish({ slide: ids[current] as string, step: revealed, blank })
+  }
+
+  function setBlank(on: boolean, share = true): void {
+    blank = on
+    blankBadge.hidden = !on
+    if (share) publish()
   }
 
   function reveal(count: number): void {
@@ -133,7 +160,7 @@ export function startPresenter(deck: HTMLElement): void {
     renderPosition()
     timer = startOnce(timer, performance.now())
     renderTimer()
-    sync?.publish(ids[current] as string, revealed)
+    publish()
   }
 
   function moveForward(): void {
@@ -196,16 +223,23 @@ export function startPresenter(deck: HTMLElement): void {
     'toggle-mode': toggleMode,
     // Already the presenter window.
     presenter: () => {},
+    fullscreen: () => void toggleFullscreen(() => {}),
+    blank: () => setBlank(!blank),
+    unblank: () => {
+      if (blank) setBlank(false)
+    },
+    help: () => help.toggle(),
   }
 
   syncWithUrl()
   renderTimer()
   renderClock()
-  sync = createSync(slug, (id, step) => {
-    const index = ids.indexOf(id)
+  sync = createSync(slug, (followed) => {
+    const index = ids.indexOf(followed.slide)
     if (index === -1) return
     go(index)
-    if (step !== revealed) reveal(step)
+    if (followed.step !== revealed) reveal(followed.step)
+    if (followed.blank !== blank) setBlank(followed.blank, false)
   })
   window.addEventListener('hashchange', syncWithUrl)
   listenForKeys((action) => actions[action]())

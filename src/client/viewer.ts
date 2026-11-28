@@ -11,7 +11,10 @@
  */
 
 import { PRESENTER_PARAM } from '../shared/constants.ts'
+import { createBlankScreen } from './blank.ts'
 import { createChrome } from './chrome.ts'
+import { isFullscreen, onFullscreenChange, toggleFullscreen } from './fullscreen.ts'
+import { createHelp } from './help.ts'
 import { trackIdle } from './idle.ts'
 import { type Action, listenForKeys } from './keyboard.ts'
 import { currentMode, onSystemModeChange, toggleMode } from './mode.ts'
@@ -29,6 +32,8 @@ export function startViewer(deck: HTMLElement): void {
   let current = -1
   /** How many of the current slide's steps are revealed. */
   let revealed = 0
+  /** Whether the screen is blank (b, .), shared with the presenter window. */
+  let blank = false
   const stepCounts = slides.map((slide) => stepsOf(slide).length)
   /** Set after the first slide is shown: opening a deck doesn't move other windows. */
   let sync: SlideSync | undefined
@@ -40,7 +45,32 @@ export function startViewer(deck: HTMLElement): void {
     next: moveForward,
     copyLink,
     toggleMode: switchMode,
+    toggleFullscreen: fullscreen,
   })
+  const blankScreen = createBlankScreen()
+  const help = createHelp('deck', [
+    {
+      title: 'Search',
+      entries: [
+        { shown: ['Ctrl+F', 'Cmd+F'], label: 'Search the slides' },
+        { shown: ['F3', 'Shift+F3'], label: 'Next or previous match (also Enter in the field)' },
+        { shown: ['Esc'], label: 'Close the search' },
+      ],
+    },
+  ])
+
+  /** What the other windows need to follow this one. */
+  const state = () => ({ slide: ids[current] as string, step: revealed, blank })
+
+  function setBlank(on: boolean): void {
+    blank = on
+    blankScreen.set(on)
+    sync?.publish(state())
+  }
+
+  function fullscreen(): void {
+    void toggleFullscreen(() => chrome.toast("Fullscreen isn't available here"))
+  }
 
   function show(index: number, announce = true): void {
     const target = Math.min(Math.max(index, 0), slides.length - 1)
@@ -55,14 +85,14 @@ export function startViewer(deck: HTMLElement): void {
     chrome.update(current, slides.length)
     preloader?.prioritise(current)
     if (announce) chrome.announce(slide.getAttribute('aria-label') ?? '')
-    sync?.publish(slide.id, 0)
+    sync?.publish(state())
   }
 
   function reveal(count: number): void {
     const slide = slides[current] as HTMLElement
     revealed = clampSteps(count, stepCounts[current] ?? 0)
     applySteps(slide, revealed)
-    sync?.publish(slide.id, revealed)
+    sync?.publish(state())
   }
 
   function moveForward(): void {
@@ -120,18 +150,27 @@ export function startViewer(deck: HTMLElement): void {
     last: () => go(slides.length - 1),
     'toggle-mode': switchMode,
     presenter: openPresenter,
+    fullscreen,
+    blank: () => setBlank(!blank),
+    unblank: () => {
+      if (blank) setBlank(false)
+    },
+    help: () => help.toggle(),
   }
 
   deck.dataset.mode = 'present'
   syncWithUrl(false)
   preloader = startPreloading(slides, current)
   chrome.setDarkPressed(currentMode() === 'dark')
-  sync = createSync(deck.dataset.deck ?? '', (id, step) => {
-    const index = ids.indexOf(id)
+  sync = createSync(deck.dataset.deck ?? '', (followed) => {
+    const index = ids.indexOf(followed.slide)
     if (index === -1) return
     go(index)
-    reveal(step)
+    reveal(followed.step)
+    if (followed.blank !== blank) setBlank(followed.blank)
   })
+  chrome.setFullscreen(isFullscreen())
+  onFullscreenChange((on) => chrome.setFullscreen(on))
 
   window.addEventListener('hashchange', () => syncWithUrl(true))
   // Before the navigation keys: they skip the keys the search handles.

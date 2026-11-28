@@ -63,7 +63,9 @@
     .presenter,
     .viewer-progress,
     .viewer-toast,
-    .viewer-live {
+    .viewer-live,
+    .viewer-blank,
+    .viewer-help {
       display: none;
     }
   }

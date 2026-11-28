@@ -25,6 +25,7 @@
 @import "./viewer/chrome.css";
 @import "./viewer/search.css";
 @import "./viewer/presenter.css";
+@import "./viewer/overlays.css";
 @import "./components/slide.css";
 @import "./components/callout.css";
 @import "./components/code.css";

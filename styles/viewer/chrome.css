@@ -39,6 +39,11 @@
     opacity: 0;
   }
 
+  /* A hidden control (fullscreen where the browser has none) takes no room. */
+  .viewer-controls__button[hidden] {
+    display: none;
+  }
+
   .viewer-controls__button {
     display: grid;
     place-items: center;

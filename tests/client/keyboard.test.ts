@@ -1,6 +1,12 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { actionForKey, isEditable, searchKeyAction } from '../../src/client/keyboard.ts'
+import {
+  type Action,
+  actionForKey,
+  isEditable,
+  SHORTCUTS,
+  searchKeyAction,
+} from '../../src/client/keyboard.ts'
 
 const key = (
   k: string,
@@ -32,6 +38,42 @@ describe('actionForKey', () => {
     expect(actionForKey(key('End'))).toBe('last')
     expect(actionForKey(key('d'))).toBe('toggle-mode')
     expect(actionForKey(key('s'))).toBe('presenter')
+  })
+
+  it('fullscreen, blank screen and help', () => {
+    expect(actionForKey(key('f'))).toBe('fullscreen')
+    expect(actionForKey(key('b'))).toBe('blank')
+    expect(actionForKey(key('.'))).toBe('blank')
+    expect(actionForKey(key('Escape'))).toBe('unblank')
+    expect(actionForKey(key('?', { shiftKey: true }))).toBe('help')
+    expect(actionForKey(key('h'))).toBe('help')
+  })
+
+  it('keeps Shift out of the way of the arrows, but not of Space', () => {
+    expect(actionForKey(key('ArrowRight', { shiftKey: true }))).toBe('next')
+    expect(actionForKey(key(' ', { shiftKey: false }))).toBe('next')
+  })
+
+  it('describes every action for the help, once per shown entry', () => {
+    const actions: Action[] = [
+      'next',
+      'previous',
+      'first',
+      'last',
+      'toggle-mode',
+      'presenter',
+      'fullscreen',
+      'blank',
+      'unblank',
+      'help',
+    ]
+    for (const action of actions) {
+      expect(SHORTCUTS.some((entry) => entry.action === action)).toBe(true)
+    }
+    for (const entry of SHORTCUTS.filter((shortcut) => !shortcut.hidden)) {
+      expect(entry.label).not.toBe('')
+      expect(entry.shown.length).toBeGreaterThan(0)
+    }
   })
 
   it('leaves shortcuts with modifiers to the browser', () => {

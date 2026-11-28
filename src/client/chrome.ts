@@ -2,6 +2,7 @@
  * Viewer chrome: progress bar, controls, live region and toast. Only
  * created when JavaScript runs, so the no-JS page stays clean.
  */
+import { fullscreenAvailable } from './fullscreen.ts'
 import { icons } from './icons.ts'
 
 export interface ChromeHandlers {
@@ -9,6 +10,7 @@ export interface ChromeHandlers {
   readonly next: () => void
   readonly copyLink: () => void
   readonly toggleMode: () => void
+  readonly toggleFullscreen: () => void
 }
 
 export interface Chrome {
@@ -16,6 +18,7 @@ export interface Chrome {
   announce(message: string): void
   toast(message: string): void
   setDarkPressed(pressed: boolean): void
+  setFullscreen(on: boolean): void
 }
 
 const TOAST_DURATION = 1800
@@ -31,7 +34,10 @@ export function createChrome(deck: HTMLElement, handlers: ChromeHandlers): Chrom
   const next = button('next', 'Next slide', handlers.next)
   const link = button('link', 'Copy link to this slide', handlers.copyLink)
   const mode = button('mode', 'Dark mode', handlers.toggleMode)
-  controls.append(previous, counter, next, link, mode)
+  const fullscreen = button('fullscreen', 'Enter fullscreen', handlers.toggleFullscreen)
+  // Not every browser lets a page go fullscreen (iPhone Safari): no button there.
+  fullscreen.hidden = !fullscreenAvailable()
+  controls.append(previous, counter, next, link, mode, fullscreen)
 
   const live = element('div', 'viewer-live visually-hidden', {
     'aria-live': 'polite',
@@ -61,6 +67,12 @@ export function createChrome(deck: HTMLElement, handlers: ChromeHandlers): Chrom
     },
     setDarkPressed(pressed) {
       mode.setAttribute('aria-pressed', String(pressed))
+    },
+    setFullscreen(on) {
+      const label = on ? 'Exit fullscreen' : 'Enter fullscreen'
+      fullscreen.setAttribute('aria-label', label)
+      fullscreen.title = label
+      fullscreen.innerHTML = icons[on ? 'exit-fullscreen' : 'fullscreen']
     },
   }
 }

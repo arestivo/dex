@@ -431,6 +431,141 @@ describe('live demos', () => {
   })
 })
 
+describe('presenting keys', () => {
+  const openPair = async (fragment: string) => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } })
+    const deckPage = await context.newPage()
+    await deckPage.goto(`${DECK}${fragment}`)
+    const [presenter] = await Promise.all([
+      context.waitForEvent('page'),
+      deckPage.keyboard.press('s'),
+    ])
+    await presenter.waitForFunction(() => document.querySelector('.presenter') !== null)
+    return { deckPage, presenter }
+  }
+  /** The blank layer, if shown: its colour and the colour of the slides' background. */
+  const blankState = (page: Page) =>
+    page.evaluate(() => {
+      const layer = document.querySelector('.viewer-blank')
+      const shown = layer !== null && getComputedStyle(layer).display !== 'none'
+      const slide = document.querySelector('.slide[data-current]') as Element
+      return {
+        shown,
+        colour: layer === null ? '' : getComputedStyle(layer).backgroundColor,
+        slideColour: getComputedStyle(slide).backgroundColor,
+        controls: getComputedStyle(document.querySelector('.viewer-controls') as Element)
+          .visibility,
+      }
+    })
+
+  it('f toggles fullscreen', async () => {
+    const page = await open('#second')
+    await page.keyboard.press('f')
+    await page.waitForFunction(() => document.fullscreenElement !== null)
+    expect(
+      await page.getAttribute('.viewer-controls button[title$="fullscreen"]', 'aria-label'),
+    ).toBe('Exit fullscreen')
+    await page.keyboard.press('f')
+    await page.waitForFunction(() => document.fullscreenElement === null)
+  })
+
+  it('hides the fullscreen button where the browser has no fullscreen', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } })
+    await context.addInitScript(() =>
+      Object.defineProperty(Document.prototype, 'fullscreenEnabled', { get: () => false }),
+    )
+    const page = await context.newPage()
+    await page.goto(`${DECK}#second`)
+    expect(await page.isHidden('.viewer-controls button[aria-label="Enter fullscreen"]')).toBe(true)
+  })
+
+  it('b blanks the screen in the slides background, navigation goes on, b brings it back', async () => {
+    const page = await open('#second')
+    await page.keyboard.press('b')
+    const blank = await blankState(page)
+    expect(blank).toMatchObject({ shown: true, controls: 'hidden' })
+    expect(blank.colour).toBe(blank.slideColour)
+    await page.keyboard.press('ArrowRight')
+    expect((await blankState(page)).shown).toBe(true)
+    expect(await current(page)).toBe('third')
+    await page.keyboard.press('.')
+    expect((await blankState(page)).shown).toBe(false)
+    expect(await current(page)).toBe('third')
+  })
+
+  it('the blank screen follows the mode, and Esc ends it', async () => {
+    const page = await open('#second')
+    await page.emulateMedia({ colorScheme: 'light' })
+    await page.keyboard.press('b')
+    const light = (await blankState(page)).colour
+    await page.keyboard.press('d')
+    const dark = await blankState(page)
+    expect(dark.colour).not.toBe(light)
+    expect(dark.colour).toBe(dark.slideColour)
+    await page.keyboard.press('Escape')
+    expect((await blankState(page)).shown).toBe(false)
+  })
+
+  it('b in the presenter window blanks the deck window, not the presenter view', async () => {
+    const { deckPage, presenter } = await openPair('#second')
+    await presenter.keyboard.press('b')
+    await deckPage.waitForFunction(() => document.documentElement.hasAttribute('data-blank'))
+    expect(await presenter.isVisible('.presenter__blank')).toBe(true)
+    expect(await presenter.isVisible('.presenter__stage--current .slide')).toBe(true)
+    await presenter.keyboard.press('b')
+    await deckPage.waitForFunction(() => !document.documentElement.hasAttribute('data-blank'))
+    expect(await presenter.isHidden('.presenter__blank')).toBe(true)
+  })
+
+  it('? lists the deck window shortcuts, and Esc closes it and gives the keys back', async () => {
+    const page = await open('#second')
+    await page.keyboard.press('?')
+    const dialog = page.locator('dialog.viewer-help')
+    await expect.poll(() => dialog.evaluate((d) => (d as HTMLDialogElement).open)).toBe(true)
+    const text = (await dialog.textContent()) ?? ''
+    for (const shown of ['→', 'Space', 'Home', 'f', 'b', 'd', 's', '?', 'Ctrl+F'])
+      expect(text).toContain(shown)
+    expect(text).toContain('Open the presenter window')
+    // Centred in the window (the reset's margin: 0 would pin it to the corner).
+    const box = await dialog.evaluate((d) => {
+      const r = d.getBoundingClientRect()
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+    })
+    expect(Math.abs(box.x - 640)).toBeLessThan(2)
+    expect(Math.abs(box.y - 360)).toBeLessThan(2)
+    // The slide keys wait while the help is open.
+    await page.keyboard.press('ArrowRight')
+    expect(await current(page)).toBe('second')
+    await page.keyboard.press('Escape')
+    expect(await dialog.evaluate((d) => (d as HTMLDialogElement).open)).toBe(false)
+    await page.keyboard.press('ArrowRight')
+    expect(await current(page)).toBe('third')
+  })
+
+  it('the help closes on a click outside, follows the mode and never prints', async () => {
+    const page = await open('#second')
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await page.keyboard.press('h')
+    const dialog = page.locator('dialog.viewer-help')
+    expect(await dialog.evaluate((d) => getComputedStyle(d).backgroundColor)).toBe(
+      'rgb(18, 20, 26)',
+    )
+    await page.emulateMedia({ colorScheme: 'dark', media: 'print' })
+    expect(await dialog.evaluate((d) => getComputedStyle(d).display)).toBe('none')
+    await page.emulateMedia({ colorScheme: 'dark', media: 'screen' })
+    await page.mouse.click(5, 5)
+    expect(await dialog.evaluate((d) => (d as HTMLDialogElement).open)).toBe(false)
+  })
+
+  it('the presenter window help lists its own controls', async () => {
+    const { presenter } = await openPair('#second')
+    await presenter.keyboard.press('?')
+    const text = (await presenter.locator('dialog.viewer-help').textContent()) ?? ''
+    expect(text).toContain('Timer')
+    expect(text).not.toContain('Open the presenter window')
+  })
+})
+
 describe('controls', () => {
   const controlsShown = (page: Page) =>
     page.evaluate(() => {
