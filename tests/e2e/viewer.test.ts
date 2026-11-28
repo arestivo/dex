@@ -5,7 +5,7 @@
  */
 import { type Browser, chromium, type Page } from 'playwright-core'
 import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest'
-import { findChromium, showEveryStep } from '../../src/cli/browser.ts'
+import { findChromium, showEveryStep, waitForImages } from '../../src/cli/browser.ts'
 
 const DECK = new URL('demo/', inject('baseUrl')).href
 let browser: Browser
@@ -782,6 +782,100 @@ describe('diagrams', () => {
     const page = await open('#diagram')
     await page.emulateMedia({ colorScheme: 'dark', media: 'print' })
     expect(await visible(page)).toEqual(['light'])
+  })
+
+  /** Whether both renderings of the #diagram slide's diagram have loaded. */
+  const bothLoaded = (page: Page) =>
+    page.waitForFunction(
+      () =>
+        [...document.querySelectorAll<HTMLImageElement>('#diagram img.diagram__render')].every(
+          (img) => img.complete && img.naturalWidth > 0,
+        ),
+      null,
+      { timeout: 10_000 },
+    )
+
+  it('are lazy files, not requested before the first slide shows', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } })
+    // Record, as the viewer reveals the page, how many diagram images were requested.
+    await context.addInitScript(() => {
+      new MutationObserver((_, observer) => {
+        if (document.documentElement?.hasAttribute('data-loading') !== false) return
+        observer.disconnect()
+        const images = [...document.querySelectorAll<HTMLImageElement>('img.diagram__render')]
+        ;(window as unknown as { atReady: unknown }).atReady = {
+          images: images.length,
+          lazy: images.filter((img) => img.loading === 'lazy').length,
+          fetched: performance
+            .getEntriesByType('resource')
+            .filter((entry) => entry.name.includes('/_app/diagrams/')).length,
+        }
+        // The init script runs before <html> exists: watch the whole document.
+      }).observe(document, { attributes: true, subtree: true, attributeFilter: ['data-loading'] })
+    })
+    const page = await context.newPage()
+    // Opened on a slide without diagrams.
+    await page.goto(`${DECK}#first`)
+    await page.waitForFunction(() => 'atReady' in window)
+    expect(await page.evaluate(() => (window as unknown as { atReady: unknown }).atReady)).toEqual({
+      images: 2,
+      lazy: 2,
+      fetched: 0,
+    })
+    const srcs = await page.$$eval('#diagram img.diagram__render', (all) =>
+      all.map((img) => new URL((img as HTMLImageElement).src).pathname),
+    )
+    for (const src of srcs) expect(src).toMatch(/\/_app\/diagrams\/[0-9a-f]{16}\.svg$/)
+    expect(await page.$$eval('#diagram svg', (all) => all.length)).toBe(0)
+  })
+
+  it('load in the background once the first slide is shown', async () => {
+    const page = await open('#first')
+    await bothLoaded(page)
+  })
+
+  it('print right away, without visiting the diagram slide', async () => {
+    const page = await open('#first')
+    await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')))
+    await page.emulateMedia({ media: 'print' })
+    await bothLoaded(page)
+    const light = await page.$eval('#diagram .diagram__render--light', (img) => ({
+      shown: getComputedStyle(img).display !== 'none',
+      width: img.getBoundingClientRect().width,
+    }))
+    expect(light.shown).toBe(true)
+    expect(light.width).toBeGreaterThan(0)
+  })
+
+  it('are all loaded once dex fit and dex shot have waited for images', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } })
+    const page = await context.newPage()
+    // Don't let goto wait for the load event: the helper must do the waiting.
+    await page.goto(`${DECK}#diagram`, { waitUntil: 'commit' })
+    await waitForImages(page)
+    const unloaded = await page.$$eval(
+      'img',
+      (all) =>
+        all.filter(
+          (img) =>
+            !(img as HTMLImageElement).complete || (img as HTMLImageElement).naturalWidth === 0,
+        ).length,
+    )
+    expect(unloaded).toBe(0)
+  })
+
+  it('switch mode without a new request', async () => {
+    const page = await open('#diagram')
+    // The shown slide's renderings, both modes, are loaded first.
+    await bothLoaded(page)
+    const requests: string[] = []
+    page.on('request', (request) => {
+      requests.push(request.url())
+    })
+    await page.keyboard.press('d')
+    await page.keyboard.press('d')
+    await page.waitForTimeout(300)
+    expect(requests.filter((url) => url.includes('/_app/diagrams/'))).toEqual([])
   })
 })
 

@@ -15,6 +15,7 @@ import { createChrome } from './chrome.ts'
 import { trackIdle } from './idle.ts'
 import { type Action, listenForKeys } from './keyboard.ts'
 import { currentMode, onSystemModeChange, toggleMode } from './mode.ts'
+import { type Preloader, startPreloading } from './preload.ts'
 import { fragmentFor, resolveFragment } from './router.ts'
 import { createSearch } from './search-bar.ts'
 import { applySteps, back, clampSteps, forward, stepsOf } from './steps.ts'
@@ -31,6 +32,8 @@ export function startViewer(deck: HTMLElement): void {
   const stepCounts = slides.map((slide) => stepsOf(slide).length)
   /** Set after the first slide is shown: opening a deck doesn't move other windows. */
   let sync: SlideSync | undefined
+  /** Loads diagrams in the background once the first slide is shown. */
+  let preloader: Preloader | undefined
 
   const chrome = createChrome(deck, {
     previous: moveBack,
@@ -50,6 +53,7 @@ export function startViewer(deck: HTMLElement): void {
     revealed = 0
     applySteps(slide, 0)
     chrome.update(current, slides.length)
+    preloader?.prioritise(current)
     if (announce) chrome.announce(slide.getAttribute('aria-label') ?? '')
     sync?.publish(slide.id, 0)
   }
@@ -120,6 +124,7 @@ export function startViewer(deck: HTMLElement): void {
 
   deck.dataset.mode = 'present'
   syncWithUrl(false)
+  preloader = startPreloading(slides, current)
   chrome.setDarkPressed(currentMode() === 'dark')
   sync = createSync(deck.dataset.deck ?? '', (id, step) => {
     const index = ids.indexOf(id)

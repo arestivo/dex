@@ -42,3 +42,26 @@ export function findChromium(): string {
 export async function showEveryStep(page: Page): Promise<void> {
   await page.addStyleTag({ content: '.step { visibility: visible !important; }' })
 }
+
+/**
+ * Loads every image of the page and waits until each has loaded (or failed):
+ * diagrams are separate, lazy files, and one on a hidden slide would never
+ * load on its own, so a check would measure or capture it empty.
+ */
+export async function waitForImages(page: Page): Promise<void> {
+  await page.waitForLoadState('load')
+  await page.evaluate(() =>
+    Promise.all(
+      [...document.images].map((image) => {
+        image.loading = 'eager'
+        if (image.complete) return undefined
+        return new Promise<void>((done) => {
+          image.addEventListener('load', () => done(), { once: true })
+          image.addEventListener('error', () => done(), { once: true })
+          // It may have finished between the check and the listeners.
+          if (image.complete) done()
+        })
+      }),
+    ),
+  )
+}

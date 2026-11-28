@@ -103,4 +103,6 @@ export interface CompiledDeck {
   readonly assets: ReadonlySet<string>
   /** Assets only the speaker notes reference: published only with the notes. */
   readonly noteAssets: ReadonlySet<string>
+  /** Diagram renderings the slides refer to: file name (in `_app/diagrams/`) to SVG text. */
+  readonly diagrams: ReadonlyMap<string, string>
 }

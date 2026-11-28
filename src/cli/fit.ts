@@ -11,7 +11,7 @@ import { buildSite, startPreview } from '../build/site.ts'
 import type { ContentLocations } from '../core/config.ts'
 import { type Diagnostic, formatDiagnostic, hasErrors } from '../core/diagnostics.ts'
 import { compileWorkspace, DECK_FILE } from '../core/workspace.ts'
-import { findChromium, showEveryStep } from './browser.ts'
+import { findChromium, showEveryStep, waitForImages } from './browser.ts'
 
 /** Viewports to test: projector 16:9 and an older 4:3 one. */
 const VIEWPORTS = [
@@ -50,6 +50,7 @@ export async function runFit(content: ContentLocations, slugs: readonly string[]
         const page = await browser.newPage({ viewport })
         await page.goto(new URL(`${deck.slug}/`, base).href)
         await showEveryStep(page)
+        await waitForImages(page)
         const overflows = await page.evaluate(measureOverflow, TOLERANCE)
         await page.close()
 

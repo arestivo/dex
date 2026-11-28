@@ -35,7 +35,7 @@ Each diagnostic SHALL state its severity, the file path, the line number where k
 
 #### Scenario: Successful build
 - **WHEN** the user runs `dex build` and all decks are valid
-- **THEN** the output folder contains `index.html`, one `<slug>/index.html` per deck, each deck's assets under `<slug>/assets/`, and the shared script and stylesheet
+- **THEN** the output folder contains `index.html`, one `<slug>/index.html` per deck, each deck's assets under `<slug>/assets/`, the diagram renderings under `_app/diagrams/`, and the shared script and stylesheet
 
 #### Scenario: Build with errors
 - **WHEN** a deck has an error
@@ -228,3 +228,15 @@ While `dex dev` runs, editing a theme's `theme.css` SHALL update open pages with
 #### Scenario: Dev server
 - **WHEN** a deck has notes and no `publishNotes` setting, and the user opens it with `dex dev`
 - **THEN** the presenter window shows the notes
+
+### Requirement: Browser checks wait for images
+
+`dex fit` and `dex shot` SHALL wait until every image of the deck page, diagrams included, has loaded before they measure or capture a slide.
+
+#### Scenario: Diagram measured
+- **WHEN** a slide's diagram makes its content too tall and the user runs `dex fit`
+- **THEN** the slide is reported as not fitting
+
+#### Scenario: Diagram captured
+- **WHEN** the user runs `dex shot <slug> <id>` for a slide with a diagram
+- **THEN** both images show the diagram, in the rendering of their mode

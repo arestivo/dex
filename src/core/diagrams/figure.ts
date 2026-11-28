@@ -1,51 +1,79 @@
 /**
- * Turns a diagram's light and dark SVG renderings into the figure that is
- * inlined in the slide. Pure: string and hast manipulation only.
+ * Turns a diagram's light and dark SVG renderings into the figure shown in
+ * the slide. Each rendering is published as its own file, named after a hash
+ * of its content (`_app/diagrams/<hash>.svg`), and the figure refers to both
+ * with `<img>`: the page stays small, and browsers cache unchanged diagrams.
+ * Pure: string and hast manipulation, and hashing.
  */
+import { createHash } from 'node:crypto'
 import type { Element } from 'hast'
-import { fromHtml } from 'hast-util-from-html'
 import { MODES, type Mode } from './palette.ts'
 import type { DiagramRenderings } from './render.ts'
 
 /** TeX points per em of slide text: 10pt labels are as large as body text. */
 const POINTS_PER_EM = 10
 
+/** Where the built site keeps diagram files, relative to its root. */
+export const DIAGRAMS_DIR = '_app/diagrams'
+
+export interface DiagramFigure {
+  readonly figure: Element
+  /** The files the figure refers to: file name (in DIAGRAMS_DIR) to SVG text. */
+  readonly files: ReadonlyMap<string, string>
+}
+
+/** A rendering's file name: a hash of its content, so it changes exactly when the file does. */
+export function diagramFileName(svg: string): string {
+  return `${createHash('sha256').update(svg).digest('hex').slice(0, 16)}.svg`
+}
+
+/**
+ * The figure for a diagram, for a page one folder below the site root (a
+ * deck page, `<slug>/index.html`).
+ */
 export function diagramFigure(
   renderings: DiagramRenderings,
   alt: string | undefined,
-  prefix: string,
-): Element {
-  const children = MODES.map((mode) =>
-    renderingElement(renderings[mode], mode, `${prefix}${mode}-`),
-  )
+): DiagramFigure {
+  const files = new Map<string, string>()
+  const children = MODES.map((mode) => {
+    const svg = renderings[mode]
+    const name = diagramFileName(svg)
+    files.set(name, svg)
+    return renderingElement(svg, mode, `../${DIAGRAMS_DIR}/${name}`)
+  })
   return {
-    type: 'element',
-    tagName: 'figure',
-    properties: {
-      className: ['diagram'],
-      role: 'img',
-      ...(alt === undefined ? {} : { ariaLabel: alt }),
+    figure: {
+      type: 'element',
+      tagName: 'figure',
+      properties: {
+        className: ['diagram'],
+        role: 'img',
+        ...(alt === undefined ? {} : { ariaLabel: alt }),
+      },
+      children,
     },
-    children,
+    files,
   }
 }
 
-function renderingElement(svg: string, mode: Mode, prefix: string): Element {
+/** One rendering: decorative, since the figure carries the alt text. */
+function renderingElement(svg: string, mode: Mode, src: string): Element {
   const width = svgWidthEm(svg)
-  const root = fromHtml(prefixIds(svg, prefix), { fragment: true })
-  const element = root.children.find(
-    (node): node is Element => node.type === 'element' && node.tagName === 'svg',
-  )
-  if (element === undefined) throw new Error('The diagram renderer returned no <svg> element.')
-  const { width: _width, height: _height, ...properties } = element.properties
-  element.properties = {
-    ...properties,
-    className: ['diagram__render', `diagram__render--${mode}`],
-    ariaHidden: 'true',
-    focusable: 'false',
-    ...(width === undefined ? {} : { style: `width: ${width}em` }),
+  return {
+    type: 'element',
+    tagName: 'img',
+    properties: {
+      className: ['diagram__render', `diagram__render--${mode}`],
+      src,
+      alt: '',
+      // The first slide mustn't wait for every diagram: the viewer loads the
+      // rest in the background (src/client/preload.ts).
+      loading: 'lazy',
+      ...(width === undefined ? {} : { style: `width: ${width}em` }),
+    },
+    children: [],
   }
-  return element
 }
 
 /** The SVG's width in em (from its `width` in points), or undefined. */
@@ -53,23 +81,4 @@ export function svgWidthEm(svg: string): number | undefined {
   const match = /<svg\b[^>]*\swidth=['"]([\d.]+)pt['"]/.exec(svg)
   if (match?.[1] === undefined) return undefined
   return Math.round((Number(match[1]) / POINTS_PER_EM) * 1000) / 1000
-}
-
-/**
- * Prefixes every id and every reference to one (`href="#…"`,
- * `xlink:href="#…"`, `url(#…)`), so several SVGs can share a page.
- */
-export function prefixIds(svg: string, prefix: string): string {
-  return svg
-    .replace(
-      /(\sid=)(['"])([^'"]+)\2/g,
-      (_, attribute: string, quote: string, id: string) =>
-        `${attribute}${quote}${prefix}${id}${quote}`,
-    )
-    .replace(
-      /(\s(?:xlink:)?href=)(['"])#([^'"]+)\2/g,
-      (_, attribute: string, quote: string, id: string) =>
-        `${attribute}${quote}#${prefix}${id}${quote}`,
-    )
-    .replace(/url\(#([^)]+)\)/g, (_, id: string) => `url(#${prefix}${id})`)
 }

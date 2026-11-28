@@ -98,7 +98,12 @@ export async function compileDeck(
   )
   const slideIds = new Set(slides.flatMap((slide) => (slide.id ? [slide.id] : [])))
   const highlighter = await prepareHighlighter(slides.map((slide) => slide.tree))
-  const diagrams = await prepareDiagrams(slides, input, theme, diagnostics)
+  const { figures: diagrams, files: diagramFiles } = await prepareDiagrams(
+    slides,
+    input,
+    theme,
+    diagnostics,
+  )
   const assets = new Set<string>()
   // Assets only the speaker notes use: published only with the notes.
   const noteAssets = new Set<string>()
@@ -169,7 +174,15 @@ export async function compileDeck(
   if (meta === undefined || diagnostics.hasErrors) return { deck: undefined, diagnostics }
   for (const asset of assets) noteAssets.delete(asset)
   return {
-    deck: { slug: input.slug, meta, slides: rendered, theme, assets, noteAssets },
+    deck: {
+      slug: input.slug,
+      meta,
+      slides: rendered,
+      theme,
+      assets,
+      noteAssets,
+      diagrams: diagramFiles,
+    },
     diagnostics,
   }
 }
@@ -195,16 +208,18 @@ function resolveTheme(
 
 /**
  * Validates every diagram block, renders the valid ones in one batch, and
- * returns their figures keyed by mdast node. Errors become diagnostics on
- * the deck (block lines) or on the preamble file TeX blamed.
+ * returns their figures keyed by mdast node, with the files they refer to.
+ * Errors become diagnostics on the deck (block lines) or on the preamble
+ * file TeX blamed.
  */
 async function prepareDiagrams(
   slides: readonly ParsedSlide[],
   input: DeckInput,
   theme: string,
   diagnostics: DiagnosticBag,
-): Promise<Map<Code, Element>> {
+): Promise<{ figures: Map<Code, Element>; files: Map<string, string> }> {
   const figures = new Map<Code, Element>()
+  const files = new Map<string, string>()
   const blocks: { node: Code; slide: ParsedSlide; alt: string | undefined; fence: number }[] = []
 
   for (const slide of slides) {
@@ -228,7 +243,7 @@ async function prepareDiagrams(
       blocks.push({ node, slide, alt, fence })
     })
   }
-  if (blocks.length === 0) return figures
+  if (blocks.length === 0) return { figures, files }
 
   if (input.renderDiagrams === undefined) {
     for (const block of blocks) {
@@ -237,7 +252,7 @@ async function prepareDiagrams(
         slideId: block.slide.id,
       })
     }
-    return figures
+    return { figures, files }
   }
 
   const outcomes = await input.renderDiagrams(
@@ -245,15 +260,13 @@ async function prepareDiagrams(
     theme,
   )
   const reported = new Set<string>()
-  const counts = new Map<string, number>()
   blocks.forEach((block, index) => {
     const outcome = outcomes[index]
     if (outcome === undefined) return
     if ('svg' in outcome) {
-      const key = block.slide.id ?? 'slide'
-      const number = (counts.get(key) ?? 0) + 1
-      counts.set(key, number)
-      figures.set(block.node, diagramFigure(outcome.svg, block.alt, `${key}-diagram${number}-`))
+      const diagram = diagramFigure(outcome.svg, block.alt)
+      figures.set(block.node, diagram.figure)
+      for (const [name, svg] of diagram.files) files.set(name, svg)
       return
     }
     const { error } = outcome
@@ -275,7 +288,7 @@ async function prepareDiagrams(
       error.line === undefined ? {} : { line: error.line },
     )
   })
-  return figures
+  return { figures, files }
 }
 
 /**

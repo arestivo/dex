@@ -30,6 +30,7 @@ import {
   hasErrors,
   sortDiagnostics,
 } from '../core/diagnostics.ts'
+import { DIAGRAMS_DIR } from '../core/diagrams/figure.ts'
 import { layoutsCss, STYLE_FILE } from '../core/layouts/load.ts'
 import { IDENTIFIER_PATTERN } from '../core/model.ts'
 import type { PageAssets } from '../core/render/html.ts'
@@ -101,6 +102,8 @@ export function dex(options: DexPluginOptions): Plugin {
   const diagramRenderer = texRendererFor(workspace)
   /** Compiled in buildStart, emitted in generateBundle. */
   let built: WorkspaceResult | undefined
+  /** Dev: the diagram files of the decks served so far, by file name. */
+  const devDiagrams = new Map<string, string>()
 
   const report = (diagnostics: readonly Diagnostic[]): void => {
     for (const d of sortDiagnostics(diagnostics)) {
@@ -252,7 +255,10 @@ export function dex(options: DexPluginOptions): Plugin {
       // deck's front matter, then dex.yaml.
       const folderPublishes = loadSettings(workspace).settings.publishNotes
       const published: string[] = []
+      // Diagram files are named by content: decks share identical renderings.
+      const diagrams = new Map<string, string>()
       for (const deck of built.decks) {
+        for (const [name, svg] of deck.diagrams) diagrams.set(name, svg)
         const includeNotes =
           options.publishNotes === true || (deck.meta.publishNotes ?? folderPublishes ?? false)
         if (includeNotes && deck.slides.some((slide) => slide.notes !== undefined)) {
@@ -270,6 +276,9 @@ export function dex(options: DexPluginOptions): Plugin {
             source: await readFile(join(workspace.decksDir, deck.slug, asset)),
           })
         }
+      }
+      for (const [name, svg] of diagrams) {
+        this.emitFile({ type: 'asset', fileName: `${DIAGRAMS_DIR}/${name}`, source: svg })
       }
       if (published.length > 0) {
         config.logger.info(`Speaker notes published for: ${published.join(', ')}.`)
@@ -304,6 +313,17 @@ export function dex(options: DexPluginOptions): Plugin {
       )
     }
 
+    if (path.startsWith(`/${DIAGRAMS_DIR}/`)) {
+      const svg = devDiagrams.get(path.slice(DIAGRAMS_DIR.length + 2))
+      res.statusCode = svg === undefined ? 404 : 200
+      res.setHeader(
+        'Content-Type',
+        svg === undefined ? 'text/plain; charset=utf-8' : 'image/svg+xml',
+      )
+      res.end(svg ?? 'Unknown diagram: reload the deck page.')
+      return true
+    }
+
     const [, slug, ...rest] = path.split('/')
     if (slug === undefined || !IDENTIFIER_PATTERN.test(slug)) return false
     const location = findDecks(workspace, new DiagnosticBag()).find((deck) => deck.slug === slug)
@@ -335,6 +355,7 @@ export function dex(options: DexPluginOptions): Plugin {
       report(all)
       if (deck === undefined || hasErrors(all))
         return html(renderErrorPage(sortDiagnostics(all), devAssets, themes.choice.fallback), 500)
+      for (const [name, svg] of deck.diagrams) devDiagrams.set(name, svg)
       // The dev server always shows the notes: they stay on this machine.
       return html(renderDeckPage(deck, devAssets, { includeNotes: true }))
     }

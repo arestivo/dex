@@ -70,7 +70,7 @@ src/core/                  build-time engine: pure TypeScript, no Vite
   render/                    HTML pages (deck, index, error)
   compile.ts                 one deck → rendered slides + diagnostics
   workspace.ts               file-system access: find + compile decks
-  diagrams/                  ```tikz: block checks, palettes from tokens.css, figure markup (pure);
+  diagrams/                  ```tikz: block checks, palettes from tokens.css, figure markup + file names (pure);
                              tex.ts (XeLaTeX -> dvisvgm), render.ts (cache in .dex/cache/; palettes per theme) do I/O
 src/build/vite-plugin.ts   Vite plugin: dev middleware, build emission, layouts and themes CSS
 src/build/site.ts          dev server / build / preview for a content folder
@@ -140,7 +140,7 @@ slides.md ─► front matter + split on `---` ─► per slide: mdast (remark +
 - **Layouts are data, not code.** `<slot>` templates parsed to hast; `style.css` wrapped in `@layer layouts { @scope (.slide[data-layout=…]) {…} }` (deck layouts: `@scope (.deck[data-deck=…] .slide[data-layout=…])`). One site-wide stylesheet holds every layout's CSS.
 - **Themes are token values.** Each theme compiles to `@layer themes { :root[data-theme="<name>"] {…} }` (the `themes` layer sits between `tokens` and `base`); pages carry `<html data-theme>` at build time, so no script is needed. Diagram palettes are built from the defaults plus the deck's theme, so a `default` deck keeps its cache keys.
 - **Output uses only relative URLs** so the built site works from any sub-path.
-- **Diagrams are pre-rendered.** A ```` ```tikz ```` block is compiled at build time with XeLaTeX (PGF's dvisvgm driver) and `dvisvgm --no-fonts`. It is compiled twice, with the light and the dark palette generated from `styles/tokens.css` and the deck's theme, preceded by the content folder's `tikz/preamble.tex` and the deck's `tikz.tex`. Both SVGs are inlined and CSS shows the one for the current mode. Renderings are cached in the content folder's `.dex/cache/` (committed), so builds need TeX only for new diagrams. TeX runs without shell escape, with paranoid file access, in a temp folder.
+- **Diagrams are pre-rendered.** A ```` ```tikz ```` block is compiled at build time with XeLaTeX (PGF's dvisvgm driver) and `dvisvgm --no-fonts`. It is compiled twice, with the light and the dark palette generated from `styles/tokens.css` and the deck's theme, preceded by the content folder's `tikz/preamble.tex` and the deck's `tikz.tex`. Each SVG is published as its own file, `_app/diagrams/<content hash>.svg` (`dex dev` serves them from memory); the slide refers to both with `<img>`, and CSS shows the one for the current mode. Renderings are cached in the content folder's `.dex/cache/` (committed), so builds need TeX only for new diagrams. TeX runs without shell escape, with paranoid file access, in a temp folder.
 - **Vite's root is the engine**, not the content folder: `src/build/site.ts` assembles the configuration (there is no `vite.config.ts`), and the plugin reads decks from, and builds into, the content locations.
 
 ## Conventions

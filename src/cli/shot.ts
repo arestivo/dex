@@ -14,7 +14,7 @@ import type { ContentLocations } from '../core/config.ts'
 import { formatDiagnostic, hasErrors, sortDiagnostics } from '../core/diagnostics.ts'
 import { compileWorkspace } from '../core/workspace.ts'
 import { MODE_STORAGE_KEY } from '../shared/constants.ts'
-import { findChromium, showEveryStep } from './browser.ts'
+import { findChromium, showEveryStep, waitForImages } from './browser.ts'
 
 export const SHOTS_DIR = join('.dex', 'shots')
 const VIEWPORT = { width: 1280, height: 720 } as const
@@ -78,6 +78,7 @@ export async function runShot(content: ContentLocations, args: readonly string[]
           await document.fonts.ready
           await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
         }, id)
+        await waitForImages(page)
         const file = join(dir, `${id}-${mode}.png`)
         await page.locator('.slide[data-current]').screenshot({ path: file })
         console.log(relative(content.root, file))

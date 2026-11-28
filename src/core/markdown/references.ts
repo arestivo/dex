@@ -1,10 +1,12 @@
 import { posix } from 'node:path'
 import type { Root } from 'hast'
-import { visit } from 'unist-util-visit'
+import { SKIP, visit } from 'unist-util-visit'
 
 /** Attributes whose values are URLs we resolve against the deck folder. */
 const URL_ATTRIBUTES = ['src', 'href', 'poster', 'data'] as const
 const SCHEME = /^[a-z][a-z0-9+.-]*:/i
+/** Diagram renderings: engine files (`_app/diagrams/`), not deck assets. */
+const DIAGRAM_RENDER = 'diagram__render'
 
 export interface ReferenceContext {
   readonly slideIds: ReadonlySet<string>
@@ -21,6 +23,8 @@ export function collectReferences(tree: Root, context: ReferenceContext): Set<st
   const assets = new Set<string>()
 
   visit(tree, 'element', (node) => {
+    const classes = node.properties.className
+    if (Array.isArray(classes) && classes.includes(DIAGRAM_RENDER)) return SKIP
     const line = node.position?.start.line
     for (const attribute of URL_ATTRIBUTES) {
       const value = node.properties[attribute]
@@ -51,6 +55,7 @@ export function collectReferences(tree: Root, context: ReferenceContext): Set<st
         assets.add(asset)
       }
     }
+    return undefined
   })
 
   return assets

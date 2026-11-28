@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { prefixIds, svgWidthEm } from '../../src/core/diagrams/figure.ts'
+import { diagramFileName, svgWidthEm } from '../../src/core/diagrams/figure.ts'
 import type { DiagramOutcome } from '../../src/core/diagrams/render.ts'
-import { compile, deck, messages, slide, slidesHtml } from '../helpers.ts'
+import { compile, compiledDeck, deck, messages, slide, slidesHtml } from '../helpers.ts'
 
 const SVG = (theme: string) =>
   `<svg version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='141.28pt' height='51.97pt' viewBox='0 0 141.28 51.97'><defs><path id='g0-1' d='M0 0'/><clipPath id='c1'><path d='M0 0'/></clipPath></defs><use xlink:href='#g0-1' clip-path='url(#c1)' data-theme='${theme}'/></svg>`
@@ -11,27 +11,35 @@ const tikz = (body = '\\node {A};', meta = ' alt="Two boxes"') =>
   `\`\`\`tikz${meta}\n\\begin{tikzpicture}\n${body}\n\\end{tikzpicture}\n\`\`\``
 
 describe('diagram figures', () => {
-  it('renders a figure with both renderings, alt text and an em width', async () => {
-    const [html] = await slidesHtml(slide('loop', tikz()), { renderDiagrams: ok })
+  it('renders a figure with alt text and both renderings as images with an em width', async () => {
+    const [html = ''] = await slidesHtml(slide('loop', tikz()), { renderDiagrams: ok })
     expect(html).toContain('<figure class="diagram" role="img" aria-label="Two boxes">')
-    expect(html).toMatch(
-      /<svg[^>]*class="diagram__render diagram__render--light"[^>]*aria-hidden="true"[^>]*style="width: 14.128em"/,
+    const light = diagramFileName(SVG('light'))
+    const dark = diagramFileName(SVG('dark'))
+    expect(html).toContain(
+      `<img class="diagram__render diagram__render--light" src="../_app/diagrams/${light}" alt="" loading="lazy" style="width: 14.128em">`,
     )
-    expect(html).toContain('diagram__render--dark')
+    expect(html).toContain(
+      `class="diagram__render diagram__render--dark" src="../_app/diagrams/${dark}"`,
+    )
+    // The page refers to the renderings; it doesn't contain them.
+    expect(html).not.toContain('<svg')
     expect(html).not.toContain('<pre')
-    expect(html).not.toContain("width='141.28pt'")
   })
 
-  it('gives every figure and mode its own ids', async () => {
-    const [html = ''] = await slidesHtml(slide('loop', `${tikz()}\n\n${tikz()}`), {
+  it("lists the deck's diagram files, once per distinct rendering", async () => {
+    const compiled = await compiledDeck(deck(slide('a', tikz()), slide('b', tikz())), {
       renderDiagrams: ok,
     })
-    // The slide itself is id="loop"; count only the ids inside the diagrams.
-    const ids = [...html.matchAll(/\sid="(loop-[^"]+)"/g)].map(([, id]) => id)
-    expect(ids).toHaveLength(8)
-    expect(new Set(ids).size).toBe(8)
-    expect(html).toContain('href="#loop-diagram1-light-g0-1"')
-    expect(html).toContain('clip-path="url(#loop-diagram2-dark-c1)"')
+    expect(compiled.diagrams).toEqual(
+      new Map([
+        [diagramFileName(SVG('light')), SVG('light')],
+        [diagramFileName(SVG('dark')), SVG('dark')],
+      ]),
+    )
+    const pages = compiled.slides.map((s) => JSON.stringify(s.element))
+    expect(pages[0]).toContain(diagramFileName(SVG('light')))
+    expect(pages[1]).toContain(diagramFileName(SVG('light')))
   })
 
   it('sends only valid blocks to the renderer, in order', async () => {
@@ -123,9 +131,9 @@ describe('figure helpers', () => {
     expect(svgWidthEm('<svg>')).toBeUndefined()
   })
 
-  it('prefixes ids and references', () => {
-    expect(
-      prefixIds(`<path id='a'/><use xlink:href='#a'/><g clip-path="url(#b)" id="b"/>`, 'p-'),
-    ).toBe(`<path id='p-a'/><use xlink:href='#p-a'/><g clip-path="url(#p-b)" id="p-b"/>`)
+  it('names a rendering after its content', () => {
+    expect(diagramFileName(SVG('light'))).toMatch(/^[0-9a-f]{16}\.svg$/)
+    expect(diagramFileName(SVG('light'))).toBe(diagramFileName(SVG('light')))
+    expect(diagramFileName(SVG('light'))).not.toBe(diagramFileName(SVG('dark')))
   })
 })
