@@ -76,6 +76,19 @@
     margin-block-start: var(--space-1);
   }
 
+  /*
+   * Bullets are text, not the built-in disc: Chromium stops drawing the disc
+   * when the text is small (about 8px, a slide on a phone in portrait), while
+   * a text bullet scales with the slide like the words next to it.
+   */
+  .slide ul {
+    list-style-type: "\2022\00a0";
+  }
+
+  .slide ul ul {
+    list-style-type: "\25e6\00a0";
+  }
+
   .slide li::marker {
     color: var(--color-muted);
   }
