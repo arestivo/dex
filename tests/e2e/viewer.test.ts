@@ -122,6 +122,92 @@ describe('presentation mode', () => {
   })
 })
 
+describe('presenter mode', () => {
+  /** Opens the deck and its presenter window (with s) in one browser context. */
+  const openBoth = async (fragment = '#first', slug = 'demo') => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } })
+    const deckPage = await context.newPage()
+    await deckPage.goto(new URL(`${slug}/${fragment}`, inject('baseUrl')).href)
+    const [presenter] = await Promise.all([
+      context.waitForEvent('page'),
+      deckPage.keyboard.press('s'),
+    ])
+    await presenter.waitForFunction(() => document.querySelector('.presenter') !== null)
+    return { deckPage, presenter }
+  }
+  const view = (page: Page) =>
+    page.evaluate(() => {
+      const text = (selector: string) => document.querySelector(selector)?.textContent?.trim() ?? ''
+      return {
+        current: text(
+          '.presenter__stage[aria-label="Current slide"] .slide h1, .presenter__stage[aria-label="Current slide"] .slide h2',
+        ),
+        next: text('.presenter__stage[aria-label="Next slide"]'),
+        notes: text('.presenter__notes'),
+        position: text('.presenter__position'),
+        timer: text('.presenter__elapsed'),
+        deckHidden:
+          getComputedStyle(document.querySelector('main.deck') as Element).display === 'none',
+      }
+    })
+
+  it('opens with s and shows the current and next slides, the notes and the position', async () => {
+    const { presenter } = await openBoth()
+    expect(new URL(presenter.url()).searchParams.has('presenter')).toBe(true)
+    const shown = await view(presenter)
+    expect(shown).toMatchObject({ current: 'First', position: '4 / 12', deckHidden: true })
+    expect(shown.next).toContain('Second')
+    expect(shown.notes).toContain('Mention the third item first.')
+    expect(await presenter.$$eval('.presenter [id]', (all) => all.length)).toBe(0)
+  })
+
+  it('says when a slide has no notes, and when the deck is the end', async () => {
+    const { presenter } = await openBoth('#last')
+    expect(await view(presenter)).toMatchObject({
+      next: 'End of the deck',
+      notes: 'No notes for this slide.',
+    })
+  })
+
+  it("says when the deck's notes aren't published", async () => {
+    const { presenter } = await openBoth('#intro', 'other')
+    expect((await view(presenter)).notes).toBe("Speaker notes aren't published for this deck.")
+  })
+
+  it('keeps both windows on the same slide, whichever one moves', async () => {
+    const { deckPage, presenter } = await openBoth()
+    await presenter.keyboard.press('ArrowRight')
+    await deckPage.waitForFunction(() => location.hash === '#second')
+    expect(await current(deckPage)).toBe('second')
+    expect(new URL(presenter.url()).hash).toBe('#second')
+
+    await deckPage.click('.viewer-controls button[aria-label="Next slide"]')
+    await presenter.waitForFunction(
+      () => document.querySelector('.presenter__position')?.textContent === '6 / 12',
+    )
+    expect((await view(presenter)).current).toBe('Third')
+
+    await presenter.close()
+    await deckPage.keyboard.press('ArrowRight')
+    expect(await current(deckPage)).toBe('details')
+  })
+
+  it('starts the timer at the first slide change, and pauses it', async () => {
+    const { presenter } = await openBoth()
+    await presenter.waitForTimeout(1200)
+    expect((await view(presenter)).timer).toBe('00:00')
+    await presenter.keyboard.press('ArrowRight')
+    await presenter.waitForTimeout(1300)
+    expect((await view(presenter)).timer).toBe('00:01')
+    await presenter.click('.presenter__timer button:first-of-type')
+    const paused = (await view(presenter)).timer
+    await presenter.waitForTimeout(1200)
+    expect((await view(presenter)).timer).toBe(paused)
+    await presenter.click('.presenter__timer button:last-of-type')
+    expect((await view(presenter)).timer).toBe('00:00')
+  })
+})
+
 describe('controls', () => {
   const controlsShown = (page: Page) =>
     page.evaluate(() => {

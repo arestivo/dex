@@ -17,3 +17,9 @@ export const LOADING_ATTRIBUTE = 'data-loading'
 
 /** After this long, a page whose script never ran is revealed anyway (as a document). */
 export const LOADING_FALLBACK_MS = 5000
+
+/** Query parameter that opens a deck page as the presenter window. */
+export const PRESENTER_PARAM = 'presenter'
+
+/** Prefix of the BroadcastChannel a deck's windows share to stay on the same slide. */
+export const SYNC_CHANNEL_PREFIX = 'dex:'

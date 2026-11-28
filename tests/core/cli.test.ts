@@ -155,6 +155,66 @@ describe('dex check and out-of-date instructions', () => {
   })
 })
 
+describe('dex build and speaker notes', () => {
+  /** Builds a copy of the notes fixture and returns every file of the site, as text. */
+  const buildNotes = async (setup: (folder: string) => void, ...args: string[]) => {
+    const folder = mkdtempSync(join(tmpdir(), 'dex-notes-'))
+    try {
+      cpSync(join(FIXTURES, 'notes'), folder, { recursive: true })
+      setup(folder)
+      const result = await runDex(folder, 'build', ...args)
+      const dist = join(folder, 'dist')
+      const files = new Map(
+        existsSync(dist)
+          ? readdirSync(dist, { recursive: true, withFileTypes: true })
+              .filter((entry) => entry.isFile())
+              .map((entry) => {
+                const path = join(entry.parentPath, entry.name)
+                return [path.slice(dist.length + 1), readFileSync(path, 'utf8')] as const
+              })
+          : [],
+      )
+      const site = [...files.values()].join('\n')
+      return { ...result, files, site }
+    } finally {
+      rmSync(folder, { recursive: true, force: true })
+    }
+  }
+
+  it('leaves notes out by default, except for decks that publish them', async () => {
+    const { code, site, files, stdout } = await buildNotes(() => {})
+    expect(code).toBe(0)
+    expect(site).not.toContain('TALK-NOTE')
+    expect(site).not.toContain('PRIVATE-NOTE')
+    expect(site).toContain('OPEN-NOTE')
+    expect(files.has('talk/assets/sketch.svg')).toBe(false)
+    expect(files.get('talk/index.html')).toContain('data-notes="omitted"')
+    expect(files.get('open/index.html')).toContain('data-notes="included"')
+    expect(stdout).toContain('Speaker notes published for: open.')
+  })
+
+  it('publishes notes for the folder with dex.yaml, except decks that keep them private', async () => {
+    const { site, files } = await buildNotes((folder) =>
+      writeFileSync(join(folder, 'dex.yaml'), 'publishNotes: true\n'),
+    )
+    expect(site).toContain('TALK-NOTE')
+    expect(site).toContain('OPEN-NOTE')
+    expect(site).not.toContain('PRIVATE-NOTE')
+    expect(files.has('talk/assets/sketch.svg')).toBe(true)
+  })
+
+  it('publishes every deck with --publish-notes', async () => {
+    const { site } = await buildNotes(() => {}, '--publish-notes')
+    for (const note of ['TALK-NOTE', 'OPEN-NOTE', 'PRIVATE-NOTE']) expect(site).toContain(note)
+  })
+
+  it('rejects --publish-notes with other commands', async () => {
+    const { code, stderr } = await runDex(join(FIXTURES, 'notes'), 'check', '--publish-notes')
+    expect(code).toBe(1)
+    expect(stderr).toContain('--publish-notes only works with `build`.')
+  })
+})
+
 describe('dex docs', () => {
   const engineDoc = (file: string) => readFileSync(join(PROJECT_ROOT, 'docs', file), 'utf8')
 

@@ -8,9 +8,11 @@ import type { DiagnosticBag } from './diagnostics.ts'
 export interface Settings {
   /** The folder's default theme (decks can name their own). */
   readonly theme?: string
+  /** Whether builds publish speaker notes of decks that don't decide (default: no). */
+  readonly publishNotes?: boolean
 }
 
-const ALLOWED_KEYS = ['theme'] as const
+const ALLOWED_KEYS = ['theme', 'publishNotes'] as const
 
 /** Validates `dex.yaml`. Problems are errors at `file`; valid keys are still kept. */
 export function parseSettings(text: string, file: string, diagnostics: DiagnosticBag): Settings {
@@ -40,15 +42,30 @@ export function parseSettings(text: string, file: string, diagnostics: Diagnosti
       )
     }
   }
+  let settings: Settings = {}
   const theme = record.theme
-  if (theme === undefined || theme === null) return {}
-  if (typeof theme !== 'string' || theme.trim() === '') {
-    diagnostics.error(file, '`theme` must be the name of a theme, e.g. `theme: slate`.', {
-      line: lineOf(text, 'theme'),
-    })
-    return {}
+  if (theme !== undefined && theme !== null) {
+    if (typeof theme !== 'string' || theme.trim() === '') {
+      diagnostics.error(file, '`theme` must be the name of a theme, e.g. `theme: slate`.', {
+        line: lineOf(text, 'theme'),
+      })
+    } else {
+      settings = { ...settings, theme: theme.trim() }
+    }
   }
-  return { theme: theme.trim() }
+  const publishNotes = record.publishNotes
+  if (publishNotes !== undefined && publishNotes !== null) {
+    if (typeof publishNotes !== 'boolean') {
+      diagnostics.error(
+        file,
+        '`publishNotes` must be `true` (builds publish speaker notes) or `false`.',
+        { line: lineOf(text, 'publishNotes') },
+      )
+    } else {
+      settings = { ...settings, publishNotes }
+    }
+  }
+  return settings
 }
 
 /** The line where a top-level `key:` appears (1 when it can't be found). */

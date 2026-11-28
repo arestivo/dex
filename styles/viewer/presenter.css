@@ -1,0 +1,143 @@
+/*
+ * The presenter window (?presenter): current slide on the left, next slide
+ * and notes on the right, position, timer and clock at the bottom. The two
+ * stages are .deck elements, so slides size and style as in the deck.
+ * Sized in rem, like the viewer chrome.
+ */
+@layer viewer {
+  :root[data-presenter] main.deck {
+    display: none;
+  }
+
+  .presenter {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 1rem;
+    padding: 1rem;
+    color: var(--color-text);
+    background: var(--color-page);
+  }
+
+  /* A stage is a .deck: undo the deck's full-window presentation box. */
+  .presenter .deck.presenter__stage {
+    position: relative;
+    inset: auto;
+    align-self: start;
+    width: 100%;
+    aspect-ratio: var(--slide-ratio-w) / var(--slide-ratio-h);
+    overflow: hidden;
+    border-radius: 0.5rem;
+    box-shadow: var(--chrome-shadow);
+  }
+
+  .presenter__side {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 1rem;
+    min-height: 0;
+  }
+
+  .presenter__label {
+    margin-block-end: 0.35rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .presenter__end {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    color: var(--color-muted);
+    background: var(--color-surface);
+  }
+
+  .presenter__notes {
+    overflow: auto;
+    padding: 1rem 1.25rem;
+    font-size: 1.3rem;
+    line-height: var(--line-height);
+    background: var(--color-bg);
+    border-radius: 0.5rem;
+  }
+
+  .presenter__notes > * + * {
+    margin-block-start: 0.6em;
+  }
+
+  .presenter__notes :where(ul, ol) {
+    padding-inline-start: 1.3em;
+  }
+
+  .presenter__notes pre {
+    padding: 0.6em 0.8em;
+    overflow: auto;
+    font-size: 0.85em;
+    background: var(--code-bg);
+    border-radius: 0.35rem;
+  }
+
+  .presenter__notes[data-empty] {
+    color: var(--color-muted);
+    font-style: italic;
+  }
+
+  .presenter__bar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 1.1rem;
+    color: var(--chrome-text);
+    background: var(--chrome-bg);
+    border-radius: var(--chrome-radius);
+    box-shadow: var(--chrome-shadow);
+  }
+
+  .presenter__position {
+    min-width: 5rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .presenter__timer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-inline-start: auto;
+  }
+
+  .presenter__elapsed,
+  .presenter__clock {
+    font-size: 1.6rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .presenter__clock {
+    margin-inline-start: 1.5rem;
+    color: var(--color-muted);
+  }
+
+  .presenter__button {
+    padding: 0.3rem 0.8rem;
+    font: inherit;
+    font-size: 0.9rem;
+    color: inherit;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .presenter__button:hover {
+    border-color: var(--color-accent);
+  }
+}

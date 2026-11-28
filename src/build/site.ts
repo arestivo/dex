@@ -18,13 +18,15 @@ import { dex } from './vite-plugin.ts'
 export interface SiteOptions {
   readonly port?: number | undefined
   readonly logLevel?: LogLevel
+  /** Builds only: publish every deck's speaker notes (`dex build --publish-notes`). */
+  readonly publishNotes?: boolean
 }
 
 function viteConfig(content: ContentLocations, options: SiteOptions): InlineConfig {
   return {
     configFile: false,
     logLevel: options.logLevel ?? 'info',
-    plugins: [dex({ content })],
+    plugins: [dex({ content, ...(options.publishNotes ? { publishNotes: true } : {}) })],
     // Compiling the decks in the plugin's buildStart is the build's real work,
     // so Rolldown's "plugin took most of the build" timing warning is noise.
     build: { rolldownOptions: { checks: { bundlerTimings: false } } },

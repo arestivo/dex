@@ -66,7 +66,7 @@ dex dev               # http://localhost:5173/  →  /http/
 dex check             # validate every deck (or: dex check http)
 dex fit               # find slides whose content doesn't fit (needs Chromium)
 dex shot http title   # save slide images (light + dark) in ./.dex/shots/
-dex build             # static site in ./dist (or --dist ~/www/slides)
+dex build             # static site in ./dist (or --dist ~/www/slides); speaker notes are left out unless published (--publish-notes)
 dex preview           # serve the built site like a static host
 dex docs              # the deck format reference (dex docs layouts: the layouts)
 dex new layout quote  # a local layout in ./layouts/quote/
@@ -94,5 +94,6 @@ Inside this repository, `pnpm dev`, `pnpm check:decks`, `pnpm build`… do the s
 | `Ctrl+F` (`Cmd+F`) | search every slide (highlights matches as you type) |
 | `F3` / `Shift+F3`, or `Enter` / `Shift+Enter` in the field | next / previous match |
 | `Esc` | close the search |
+| `s` | open the presenter window (current and next slides, speaker notes, timer); both windows stay on the same slide |
 
 Swipe left/right on touch screens. The 🔗 button copies a link to the current slide.

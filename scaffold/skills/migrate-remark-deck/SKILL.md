@@ -55,7 +55,7 @@ Ask only if the source is missing or ambiguous.
 | `\#text` at line start inside a box | keep the escape: `\#text` |
 | `<i class="fa ...">` icons | remove, or replace with words |
 | `--` incremental reveals | not supported: merge into one slide and report it |
-| `???` speaker notes | not supported: drop and report |
+| `???` speaker notes | a `:::notes` block at the end of the slide (Markdown kept). Don't set `publishNotes`: notes stay private unless the author asks. |
 | `count: false`, `background-image:`, `exclude: true` | report. Drop `exclude: true` slides only if the user agrees. |
 
 ## Rules

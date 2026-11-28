@@ -31,6 +31,7 @@ describe('actionForKey', () => {
     expect(actionForKey(key('Home'))).toBe('first')
     expect(actionForKey(key('End'))).toBe('last')
     expect(actionForKey(key('d'))).toBe('toggle-mode')
+    expect(actionForKey(key('s'))).toBe('presenter')
   })
 
   it('leaves shortcuts with modifiers to the browser', () => {

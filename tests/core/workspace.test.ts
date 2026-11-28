@@ -14,7 +14,7 @@ describe('compileWorkspace', () => {
     expect(result.decks.map((deck) => deck.slug)).toEqual(['demo'])
     expect([...(result.decks[0]?.assets ?? [])]).toEqual(['assets/used.svg'])
     expect(result.diagnostics.map(formatDiagnostic)).toEqual([
-      'decks/demo/assets/unused.svg warning Asset is not used by any slide.',
+      'decks/demo/assets/unused.svg warning Asset is not used by any slide or speaker notes.',
     ])
   })
 
@@ -95,7 +95,7 @@ describe('compileWorkspace with deck layouts', () => {
     write('decks/http/assets/used.txt', 'x')
     const result = await compileWorkspace({ root }, ['http'])
     expect(result.diagnostics.map(formatDiagnostic)).toEqual([
-      'decks/http/assets/used.txt warning Asset is not used by any slide.',
+      'decks/http/assets/used.txt warning Asset is not used by any slide or speaker notes.',
     ])
   })
 

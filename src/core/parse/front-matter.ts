@@ -3,7 +3,15 @@ import type { DiagnosticBag } from '../diagnostics.ts'
 import type { Author, DeckMeta } from '../model.ts'
 
 const FENCE = /^---\s*$/
-const ALLOWED_KEYS = new Set(['title', 'subtitle', 'description', 'author', 'lang', 'theme'])
+const ALLOWED_KEYS = new Set([
+  'title',
+  'subtitle',
+  'description',
+  'author',
+  'lang',
+  'theme',
+  'publishNotes',
+])
 const LANG_PATTERN = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/
 
 export interface FrontMatterResult {
@@ -93,6 +101,14 @@ function validateMeta(
   }
 
   const author = validateAuthor(data.author, file, diagnostics)
+  const publishNotes = data.publishNotes
+  if (publishNotes !== undefined && typeof publishNotes !== 'boolean') {
+    diagnostics.error(
+      file,
+      '`publishNotes` must be `true` (builds publish the speaker notes) or `false`.',
+      at,
+    )
+  }
 
   if (title === undefined || diagnostics.items.length > errorsBefore) return undefined
 
@@ -103,6 +119,7 @@ function validateMeta(
     ...(description === undefined ? {} : { description }),
     ...(author === undefined ? {} : { author }),
     ...(theme === undefined ? {} : { theme }),
+    ...(typeof publishNotes === 'boolean' ? { publishNotes } : {}),
   }
 }
 

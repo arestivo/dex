@@ -1,6 +1,8 @@
 ---
 # Pinned, so the committed diagram cache stays valid whatever dex.yaml says.
 theme: default
+# Published, so the e2e build has the notes the presenter tests read.
+publishNotes: true
 title: Viewer test deck
 subtitle: Fixture for the e2e tests
 author: Test Author
@@ -31,6 +33,12 @@ author: Test Author
 - One
 - Two
 - A **pre**flight check
+
+:::notes
+Mention the **third** item first.
+
+- then the others
+:::
 
 ---
 

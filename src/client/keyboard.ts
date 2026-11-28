@@ -1,6 +1,6 @@
 /** Keyboard shortcuts. `actionForKey` is pure so it can be unit-tested. */
 
-export type Action = 'next' | 'previous' | 'first' | 'last' | 'toggle-mode'
+export type Action = 'next' | 'previous' | 'first' | 'last' | 'toggle-mode' | 'presenter'
 
 export interface KeyInput {
   readonly key: string
@@ -32,6 +32,8 @@ export function actionForKey(event: KeyInput): Action | undefined {
       return 'last'
     case 'd':
       return 'toggle-mode'
+    case 's':
+      return 'presenter'
     default:
       return undefined
   }

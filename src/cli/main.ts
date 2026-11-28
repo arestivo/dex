@@ -34,6 +34,7 @@ Options:
   --port <n>            port for dev and preview
   --deck <slug>         with new layout and docs layouts: that deck's own layouts
   --theme <name>        with init: the folder's default theme, written to dex.yaml
+  --publish-notes       with build: publish every deck's speaker notes (private by default)
   --list                with docs: list the topics
   -h, --help            show this help
 `
@@ -49,6 +50,7 @@ async function main(argv: readonly string[]): Promise<number> {
       port: { type: 'string' },
       deck: { type: 'string' },
       theme: { type: 'string' },
+      'publish-notes': { type: 'boolean' },
       list: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
@@ -80,6 +82,11 @@ async function main(argv: readonly string[]): Promise<number> {
     return 1
   }
 
+  if (values['publish-notes'] !== undefined && command !== 'build') {
+    console.error(`--publish-notes only works with \`build\`.\n\n${USAGE}`)
+    return 1
+  }
+
   switch (command) {
     case 'dev': {
       const server = await startDevServer(content, { port })
@@ -87,7 +94,7 @@ async function main(argv: readonly string[]): Promise<number> {
       return 0
     }
     case 'build':
-      await buildSite(content)
+      await buildSite(content, values['publish-notes'] ? { publishNotes: true } : {})
       return 0
     case 'preview': {
       const server = await startPreview(content, { port })

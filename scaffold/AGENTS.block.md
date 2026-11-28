@@ -35,6 +35,7 @@ Don't guess the syntax: read the reference that matches the installed engine.
 - Don't add CSS or HTML styling to fix one slide. Use layouts, utility classes, or split the slide.
 - When the same slide arrangement keeps recurring, create a layout and document it in its `layout.md`: a local layout (`dex new layout <name>`) when several decks could use it, or a deck layout (`dex new layout <name> --deck <slug>`) when only one deck needs it. A layout can't reuse the name of a wider one (built-in, then local).
 - **The theme is the author's choice.** Don't change a deck's `theme:`, change `dex.yaml`, or create or edit themes unless the user asks. When they ask for other colours, check `dex docs themes` for an existing theme first, and otherwise follow the `author-theme` skill.
+- **Speaker notes are private.** Put what the presenter should say in a slide's `:::notes` block, not on the slide. Never set `publishNotes` or run `dex build --publish-notes` unless the user asks: published notes are readable by anyone.
 - Draw diagrams in ```` ```tikz alt="..." ```` blocks (see "Diagrams" in `dex docs`). Use the slide colours (`DexInk`, `DexAccent`, `DexAccentSoft`…) so they work in light and dark mode, and put shared `\tikzset` styles in `tikz/preamble.tex` instead of repeating them in every block.
 
 ### Commands

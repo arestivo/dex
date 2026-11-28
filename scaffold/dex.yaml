@@ -4,3 +4,8 @@
 # front matter, and of the index page. `dex docs themes` lists the themes
 # (each has a light and a dark version) and explains how to make your own.
 theme: default
+
+# Speaker notes (:::notes blocks) are left out of built sites unless published,
+# because anyone can read a published site. true publishes them for every deck
+# that doesn't set its own publishNotes; dex dev always shows them.
+# publishNotes: false

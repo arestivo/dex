@@ -14,6 +14,7 @@ import type { DiagramOutcome } from './diagrams/render.ts'
 import { fillTemplate, type TemplateValues } from './layouts/template.ts'
 import { type TocEntry, transformDirectives } from './markdown/directives.ts'
 import { isKnownLanguage as isKnown, prepareHighlighter } from './markdown/highlight.ts'
+import { extractNotes } from './markdown/notes.ts'
 import { collectReferences } from './markdown/references.ts'
 import { contentOf, markdownToHast } from './markdown/to-hast.ts'
 import {
@@ -98,6 +99,8 @@ export async function compileDeck(
   const highlighter = await prepareHighlighter(slides.map((slide) => slide.tree))
   const diagrams = await prepareDiagrams(slides, input, theme, diagnostics)
   const assets = new Set<string>()
+  // Assets only the speaker notes use: published only with the notes.
+  const noteAssets = new Set<string>()
   const rendered: RenderedSlide[] = []
 
   slides.forEach((slide, index) => {
@@ -114,10 +117,11 @@ export async function compileDeck(
     const warn = (message: string, line: number | undefined) =>
       diagnostics.warn(file, message, at(line))
 
-    const groups = assignSlots(slide.tree.children, layout, error)
+    const extracted = extractNotes(slide.tree.children, error)
+    const groups = assignSlots(extracted.content, layout, error)
     const content = new Map<string, ElementContent[]>()
 
-    for (const [slot, nodes] of groups) {
+    const render = (nodes: RootContent[], into: Set<string>): ElementContent[] => {
       const root = { type: 'root' as const, children: nodes }
       transformDirectives(root, { toc, error })
       warnUnknownLanguages(nodes, warn)
@@ -128,10 +132,13 @@ export async function compileDeck(
         error,
         warn,
       })) {
-        assets.add(asset)
+        into.add(asset)
       }
-      content.set(slot, contentOf(hast))
+      return contentOf(hast)
     }
+    for (const [slot, nodes] of groups) content.set(slot, render(nodes, assets))
+    const notes =
+      extracted.notes === undefined ? undefined : render([...extracted.notes], noteAssets)
 
     if (meta === undefined || layout === undefined || slide.id === undefined) return
     const number = index + 1
@@ -144,11 +151,23 @@ export async function compileDeck(
       content,
       meta,
     )
-    rendered.push({ id: slide.id, number, layout: slide.layout, title, line: slide.line, element })
+    rendered.push({
+      id: slide.id,
+      number,
+      layout: slide.layout,
+      title,
+      line: slide.line,
+      element,
+      ...(notes === undefined ? {} : { notes }),
+    })
   })
 
   if (meta === undefined || diagnostics.hasErrors) return { deck: undefined, diagnostics }
-  return { deck: { slug: input.slug, meta, slides: rendered, theme, assets }, diagnostics }
+  for (const asset of assets) noteAssets.delete(asset)
+  return {
+    deck: { slug: input.slug, meta, slides: rendered, theme, assets, noteAssets },
+    diagnostics,
+  }
 }
 
 /** The deck's theme: its own if it names a known one, else the folder theme. */

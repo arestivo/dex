@@ -40,6 +40,7 @@ import {
   compileWorkspace,
   findDecks,
   loadDeckLayouts,
+  loadSettings,
   loadSiteLayouts,
   loadThemeContext,
   loadWorkspaceLayouts,
@@ -57,6 +58,8 @@ export interface DexPluginOptions {
   readonly siteTitle?: string
   /** Layouts folder (default: the engine's `layouts/`). */
   readonly layoutsDir?: string
+  /** `dex build --publish-notes`: publish every deck's speaker notes in this build. */
+  readonly publishNotes?: boolean
 }
 
 const VIRTUAL_CSS = 'virtual:layouts.css'
@@ -245,19 +248,31 @@ export function dex(options: DexPluginOptions): Plugin {
         }),
       })
 
+      // Speaker notes are private unless published: the build flag, then the
+      // deck's front matter, then dex.yaml.
+      const folderPublishes = loadSettings(workspace).settings.publishNotes
+      const published: string[] = []
       for (const deck of built.decks) {
+        const includeNotes =
+          options.publishNotes === true || (deck.meta.publishNotes ?? folderPublishes ?? false)
+        if (includeNotes && deck.slides.some((slide) => slide.notes !== undefined)) {
+          published.push(deck.slug)
+        }
         this.emitFile({
           type: 'asset',
           fileName: `${deck.slug}/index.html`,
-          source: renderDeckPage(deck, assetsFrom('../')),
+          source: renderDeckPage(deck, assetsFrom('../'), { includeNotes }),
         })
-        for (const asset of deck.assets) {
+        for (const asset of includeNotes ? [...deck.assets, ...deck.noteAssets] : deck.assets) {
           this.emitFile({
             type: 'asset',
             fileName: `${deck.slug}/${asset}`,
             source: await readFile(join(workspace.decksDir, deck.slug, asset)),
           })
         }
+      }
+      if (published.length > 0) {
+        config.logger.info(`Speaker notes published for: ${published.join(', ')}.`)
       }
     },
   }
@@ -320,7 +335,8 @@ export function dex(options: DexPluginOptions): Plugin {
       report(all)
       if (deck === undefined || hasErrors(all))
         return html(renderErrorPage(sortDiagnostics(all), devAssets, themes.choice.fallback), 500)
-      return html(renderDeckPage(deck, devAssets))
+      // The dev server always shows the notes: they stay on this machine.
+      return html(renderDeckPage(deck, devAssets, { includeNotes: true }))
     }
 
     const file = resolve(location.dir, ...rest)

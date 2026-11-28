@@ -11,13 +11,32 @@ describe('renderDeckPage', () => {
     const result = await compiledDeck(deck(slide('intro', '# Intro'), slide('more', '# More')))
     const html = renderDeckPage(result, assets)
     expect(html).toMatch(/^<!doctype html>\n<html lang="en" data-theme="default">/)
-    expect(html).toContain('<main class="deck" data-deck="test" aria-label="Test deck">')
+    expect(html).toContain(
+      '<main class="deck" data-deck="test" data-notes="omitted" aria-label="Test deck">',
+    )
     expect(html).toContain(
       '<section id="intro" class="slide" data-layout="default" data-number="1" aria-roledescription="slide" aria-label="Slide 1 of 2: Intro">',
     )
     expect(html).toContain('id="more"')
     expect(html).toContain('<script type="module" src="../_app/app.js"></script>')
     expect(html).toContain('<link rel="stylesheet" href="../_app/app.css">')
+  })
+
+  it('leaves speaker notes out unless asked, and says so', async () => {
+    const result = await compiledDeck(
+      deck(slide('one', '# One\n\n:::notes\nSecret **plan**.\n:::'), slide('two', '# Two')),
+    )
+    const omitted = renderDeckPage(result, assets)
+    expect(omitted).not.toContain('Secret')
+    expect(omitted).not.toContain('slide__notes')
+    expect(omitted).toContain('data-notes="omitted"')
+
+    const included = renderDeckPage(result, assets, { includeNotes: true })
+    expect(included).toContain('data-notes="included"')
+    expect(included).toContain(
+      '<template class="slide__notes"><p>Secret <strong>plan</strong>.</p></template></section>',
+    )
+    expect(included.match(/<template/g)).toHaveLength(1)
   })
 
   it('sets the deck theme on the root element', async () => {

@@ -293,10 +293,10 @@ export async function compileWorkspace(
     bag.push(...diagnostics.items)
     if (deck === undefined) continue
     decks.push(deck)
-    for (const unused of unusedAssets(location, deck.assets)) {
+    for (const unused of unusedAssets(location, new Set([...deck.assets, ...deck.noteAssets]))) {
       bag.warn(
         relative(resolved.root, join(location.dir, unused)),
-        'Asset is not used by any slide.',
+        'Asset is not used by any slide or speaker notes.',
       )
     }
   }

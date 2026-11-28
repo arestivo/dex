@@ -1,16 +1,44 @@
-import type { Root } from 'hast'
+import type { Element, Root } from 'hast'
 import { toHtml } from 'hast-util-to-html'
 import { type Diagnostic, formatDiagnostic } from '../diagnostics.ts'
 import type { CompiledDeck } from '../model.ts'
 import { escapeHtml, htmlDocument, type PageAssets } from './html.ts'
 
+export interface DeckPageOptions {
+  /**
+   * Whether the page carries the speaker notes (dev, or published notes).
+   * Off by default: notes are private unless published.
+   */
+  readonly includeNotes?: boolean
+}
+
 /**
  * Renders a deck as a single page holding every slide. Without JavaScript
- * it reads as a document; the viewer turns it into a presentation.
+ * it reads as a document; the viewer turns it into a presentation. Notes go
+ * in an inert `<template>` at the end of their slide: never displayed,
+ * printed or searched, only read by the presenter window.
  */
-export function renderDeckPage(deck: CompiledDeck, assets: PageAssets): string {
-  const slides: Root = { type: 'root', children: deck.slides.map((slide) => slide.element) }
-  const body = `<main class="deck" data-deck="${escapeHtml(deck.slug)}" aria-label="${escapeHtml(deck.meta.title)}">
+export function renderDeckPage(
+  deck: CompiledDeck,
+  assets: PageAssets,
+  options: DeckPageOptions = {},
+): string {
+  const includeNotes = options.includeNotes === true
+  const slides: Root = {
+    type: 'root',
+    children: deck.slides.map((slide): Element => {
+      if (!includeNotes || slide.notes === undefined) return slide.element
+      const notes: Element = {
+        type: 'element',
+        tagName: 'template',
+        properties: { className: ['slide__notes'] },
+        children: [],
+        content: { type: 'root', children: [...slide.notes] },
+      }
+      return { ...slide.element, children: [...slide.element.children, notes] }
+    }),
+  }
+  const body = `<main class="deck" data-deck="${escapeHtml(deck.slug)}" data-notes="${includeNotes ? 'included' : 'omitted'}" aria-label="${escapeHtml(deck.meta.title)}">
 ${toHtml(slides)}
 </main>`
 

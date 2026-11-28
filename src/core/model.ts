@@ -52,6 +52,8 @@ export interface DeckMeta {
   readonly lang: string
   /** The colour theme named in the front matter, if any. */
   readonly theme?: string
+  /** Whether builds publish the speaker notes (unset: the folder decides). */
+  readonly publishNotes?: boolean
 }
 
 /** Where a layout comes from: the engine, the content folder's layouts/, or one deck's layouts/. */
@@ -86,6 +88,8 @@ export interface RenderedSlide {
   readonly line: number
   /** The `<section>` element for the slide. */
   readonly element: Element
+  /** The speaker notes, rendered; absent when the slide has none. */
+  readonly notes?: readonly ElementContent[]
 }
 
 /** A deck compiled into renderable slides. */
@@ -97,4 +101,6 @@ export interface CompiledDeck {
   readonly theme: string
   /** Asset paths (relative to the deck folder) referenced by the slides. */
   readonly assets: ReadonlySet<string>
+  /** Assets only the speaker notes reference: published only with the notes. */
+  readonly noteAssets: ReadonlySet<string>
 }

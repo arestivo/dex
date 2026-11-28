@@ -21,15 +21,31 @@ describe('parseSettings', () => {
   it('rejects unknown keys at their line, listing the allowed ones', () => {
     expect(parse('theme: slate\nport: 8080\n')).toEqual({
       settings: { theme: 'slate' },
-      lines: ['dex.yaml:2 error Unknown key "port" in dex.yaml. Allowed keys: theme.'],
+      lines: [
+        'dex.yaml:2 error Unknown key "port" in dex.yaml. Allowed keys: theme, publishNotes.',
+      ],
     })
   })
 
   it('rejects invalid YAML and non-mappings', () => {
     expect(parse('theme: [\n').lines[0]).toMatch(/^dex\.yaml:1 error Invalid YAML: /)
     expect(parse('- slate\n').lines).toEqual([
-      'dex.yaml:1 error dex.yaml must be a YAML mapping, e.g. `theme: slate`. Allowed keys: theme.',
+      'dex.yaml:1 error dex.yaml must be a YAML mapping, e.g. `theme: slate`. Allowed keys: theme, publishNotes.',
     ])
+  })
+
+  it('reads publishNotes, which must be a boolean', () => {
+    expect(parse('theme: slate\npublishNotes: true\n')).toEqual({
+      settings: { theme: 'slate', publishNotes: true },
+      lines: [],
+    })
+    expect(parse('publishNotes: false\n').settings).toEqual({ publishNotes: false })
+    expect(parse('theme: slate\npublishNotes: maybe\n')).toEqual({
+      settings: { theme: 'slate' },
+      lines: [
+        'dex.yaml:2 error `publishNotes` must be `true` (builds publish speaker notes) or `false`.',
+      ],
+    })
   })
 
   it('rejects a theme that is not a name', () => {

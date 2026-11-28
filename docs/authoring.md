@@ -47,6 +47,7 @@ author:                          # or just: author: Ana Silva
   url: https://example.org/~ana
 lang: en                         # BCP 47; default en
 theme: forest                    # colour theme; default: the folder's
+publishNotes: true               # publish the speaker notes in builds; default: the folder's (no)
 ---
 ```
 
@@ -187,6 +188,25 @@ Right
 :::
 ::::
 ```
+
+### Speaker notes
+
+```markdown
+::slide{#cors}
+
+# CORS
+
+- Same-origin policy
+- Preflight requests
+
+:::notes
+Ask who has hit a CORS error. Show the **preflight** in the network tab.
+:::
+```
+
+A slide can have one `:::notes` block, in Markdown, anywhere at its top level (not inside another block). Notes never appear on the slide, without JavaScript, in print or in the search. Press `s` while presenting to open the **presenter window**: the current and next slides, the notes, a timer and the clock. It stays on the same slide as the deck window.
+
+**Notes are private by default.** `dex dev` always shows them, but `dex build` leaves them out of the built site unless they are published: `publishNotes: true` in the deck's front matter, `publishNotes: true` in `dex.yaml` (every deck that doesn't set its own), or `dex build --publish-notes` (every deck, for that build). A built site's contents can be read by anyone, so only publish notes that may be public.
 
 ### Table of contents
 

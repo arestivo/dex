@@ -50,6 +50,14 @@ describe('parseFrontMatter', () => {
     expect(meta?.theme).toBe('forest')
   })
 
+  it('accepts publishNotes as a boolean only', () => {
+    expect(parse('---\ntitle: T\npublishNotes: true\n---\n').meta?.publishNotes).toBe(true)
+    expect(parse('---\ntitle: T\n---\n').meta?.publishNotes).toBeUndefined()
+    expect(parse('---\ntitle: T\npublishNotes: yes please\n---\n').messages).toEqual([
+      '`publishNotes` must be `true` (builds publish the speaker notes) or `false`.',
+    ])
+  })
+
   it('reports a missing or unclosed block', () => {
     expect(parse('# no front matter').messages[0]).toMatch(/must start with a YAML front matter/)
     expect(parse('---\ntitle: T\n').messages[0]).toMatch(/not closed/)

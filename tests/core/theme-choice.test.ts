@@ -66,7 +66,7 @@ describe('choosing a theme', () => {
   it('reports problems in dex.yaml', async () => {
     settings('theme: ocean\nport: 1\n')
     expect((await themesOf()).lines).toEqual([
-      'dex.yaml:2 error Unknown key "port" in dex.yaml. Allowed keys: theme.',
+      'dex.yaml:2 error Unknown key "port" in dex.yaml. Allowed keys: theme, publishNotes.',
     ])
   })
 })
