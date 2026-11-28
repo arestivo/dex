@@ -102,6 +102,46 @@ Edsger W. Dijkstra
 
 ---
 
+::slide{#live-demo}
+
+# Live demo
+
+A paragraph on the slide.
+
+:::demo
+```css
+p { color: rgb(0, 128, 0); }
+```
+```html
+<p>Green text</p>
+```
+:::
+
+---
+
+::slide{#demo-step layout=two-columns}
+
+# Demo in a step
+
+::slot{name=left}
+
+:::demo
+```css
+p { color: light-dark(#010203, #fafbfc); }
+```
+```html
+<p>Mode text</p>
+```
+:::
+
+::slot{name=right}
+
+:::step
+::demo-result
+:::
+
+---
+
 ::slide{#banner layout=banner}
 
 # Deck layout

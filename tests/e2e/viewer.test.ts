@@ -155,7 +155,7 @@ describe('presenter mode', () => {
     const { presenter } = await openBoth()
     expect(new URL(presenter.url()).searchParams.has('presenter')).toBe(true)
     const shown = await view(presenter)
-    expect(shown).toMatchObject({ current: 'First', position: '4 / 13', deckHidden: true })
+    expect(shown).toMatchObject({ current: 'First', position: '4 / 15', deckHidden: true })
     expect(shown.next).toContain('Second')
     expect(shown.notes).toContain('Mention the third item first.')
     expect(await presenter.$$eval('.presenter [id]', (all) => all.length)).toBe(0)
@@ -183,7 +183,7 @@ describe('presenter mode', () => {
 
     await deckPage.click('.viewer-controls button[aria-label="Next slide"]')
     await presenter.waitForFunction(
-      () => document.querySelector('.presenter__position')?.textContent === '6 / 13',
+      () => document.querySelector('.presenter__position')?.textContent === '6 / 15',
     )
     expect((await view(presenter)).current).toBe('Third')
 
@@ -320,7 +320,7 @@ describe('steps', () => {
 
     it('show the upcoming steps faintly, and the step in the position', async () => {
       const { presenter } = await openBoth('#reveal')
-      expect(await position(presenter)).toBe('12 / 13 · step 0 of 4')
+      expect(await position(presenter)).toBe('14 / 15 · step 0 of 4')
       expect(await faint(presenter)).toEqual(Array(4).fill(['visible', '0.3']))
     })
 
@@ -332,13 +332,13 @@ describe('steps', () => {
       )
       expect(await steps(deckPage)).toEqual(revealedUpTo(1))
       expect(await current(deckPage)).toBe('reveal')
-      expect(await position(presenter)).toBe('12 / 13 · step 1 of 4')
+      expect(await position(presenter)).toBe('14 / 15 · step 1 of 4')
       expect((await faint(presenter))[0]).toEqual(['visible', '1'])
 
       await deckPage.keyboard.press('ArrowRight')
       await presenter.waitForFunction(
         () =>
-          document.querySelector('.presenter__position')?.textContent === '12 / 13 · step 2 of 4',
+          document.querySelector('.presenter__position')?.textContent === '14 / 15 · step 2 of 4',
       )
     })
 
@@ -348,6 +348,86 @@ describe('steps', () => {
         hidden,
       )
     })
+  })
+})
+
+describe('live demos', () => {
+  /** What the browser rendered inside a demo's shadow root. */
+  const result = (page: Page, host: string) =>
+    page.$eval(host, (element) => {
+      const p = element.shadowRoot?.querySelector('p')
+      if (p === null || p === undefined) return undefined
+      const style = getComputedStyle(p)
+      return {
+        text: p.textContent,
+        color: style.color,
+        margin: style.marginTop,
+        fontSize: style.fontSize,
+        visibility: getComputedStyle(element).visibility,
+        height: element.getBoundingClientRect().height,
+      }
+    })
+
+  it('render the result of the code, isolated from the slide both ways', async () => {
+    const page = await open('#live-demo')
+    const shown = await result(page, '#live-demo .demo-result')
+    expect(shown).toMatchObject({ text: 'Green text', color: 'rgb(0, 128, 0)' })
+    // The slide's reset (margin: 0) doesn't reach the demo: the browser default applies.
+    expect(shown?.margin).toBe(shown?.fontSize)
+    // The demo's CSS doesn't reach the slide.
+    const slideColor = await page.$eval(
+      '#live-demo .slide__body > p',
+      (p) => getComputedStyle(p).color,
+    )
+    expect(slideColor).not.toBe('rgb(0, 128, 0)')
+  })
+
+  it('follow the light/dark mode, and can be revealed as a step', async () => {
+    const page = await open('#demo-step')
+    await page.emulateMedia({ colorScheme: 'light' })
+    expect((await result(page, '#demo-step .demo-result'))?.visibility).toBe('hidden')
+    await page.keyboard.press('ArrowRight')
+    expect(await result(page, '#demo-step .demo-result')).toMatchObject({
+      visibility: 'visible',
+      color: 'rgb(1, 2, 3)',
+    })
+    await page.keyboard.press('d')
+    expect((await result(page, '#demo-step .demo-result'))?.color).toBe('rgb(250, 251, 252)')
+  })
+
+  it('render without JavaScript and in print', async () => {
+    const plain = await open('#live-demo', { javaScriptEnabled: false })
+    expect((await result(plain, '#live-demo .demo-result'))?.color).toBe('rgb(0, 128, 0)')
+    const printed = await open('#first')
+    await printed.emulateMedia({ media: 'print' })
+    const shown = await result(printed, '#live-demo .demo-result')
+    expect(shown?.color).toBe('rgb(0, 128, 0)')
+    expect(shown?.height).toBeGreaterThan(0)
+  })
+
+  it('render in both stages of the presenter window', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } })
+    const deckPage = await context.newPage()
+    await deckPage.goto(`${DECK}#live-demo`)
+    const [presenter] = await Promise.all([
+      context.waitForEvent('page'),
+      deckPage.keyboard.press('s'),
+    ])
+    await presenter.waitForFunction(() => document.querySelector('.presenter') !== null)
+    expect((await result(presenter, '.presenter__stage--current .demo-result'))?.text).toBe(
+      'Green text',
+    )
+    expect(
+      (await result(presenter, '.presenter__stage[aria-label="Next slide"] .demo-result'))?.text,
+    ).toBe('Mode text')
+  })
+
+  it('are matched once by the search, in the code', async () => {
+    const page = await open('#title')
+    await page.keyboard.press('Control+f')
+    await page.keyboard.type('Green text')
+    expect(await current(page)).toBe('live-demo')
+    expect(await page.textContent('.viewer-search__count')).toBe('1 of 1')
   })
 })
 
@@ -469,12 +549,12 @@ describe('loading indicator', () => {
     await page.waitForFunction(() => !document.documentElement.hasAttribute('data-loading'), null, {
       timeout: 8000,
     })
-    expect(await state(page)).toMatchObject({ body: 'visible', visibleSlides: 13, laidOut: 13 })
+    expect(await state(page)).toMatchObject({ body: 'visible', visibleSlides: 15, laidOut: 15 })
   })
 
   it('never hides the page without JavaScript', async () => {
     const page = await open('#first', { javaScriptEnabled: false })
-    expect(await state(page)).toMatchObject({ loading: false, body: 'visible', visibleSlides: 13 })
+    expect(await state(page)).toMatchObject({ loading: false, body: 'visible', visibleSlides: 15 })
   })
 })
 
@@ -502,7 +582,7 @@ describe('slide numbers', () => {
     const page = await open('#first')
     const shown = await number(page, 'first')
     expect(shown).toMatchObject({
-      text: '4 / 13',
+      text: '4 / 15',
       visible: true,
       opacity: '0.7',
       ariaHidden: 'true',
@@ -531,7 +611,7 @@ describe('slide numbers', () => {
         .filter((element) => getComputedStyle(element).display !== 'none')
         .map((e) => e.textContent),
     )
-    expect(visible).toEqual(Array.from({ length: 12 }, (_, index) => `${index + 2} / 13`))
+    expect(visible).toEqual(Array.from({ length: 14 }, (_, index) => `${index + 2} / 15`))
   })
 
   it('prints the numbers', async () => {
@@ -544,7 +624,7 @@ describe('slide numbers', () => {
   it('is not matched by the search', async () => {
     const page = await open('#title')
     await page.keyboard.press('Control+f')
-    await page.keyboard.type('/ 13')
+    await page.keyboard.type('/ 15')
     expect(await page.textContent('.viewer-search__count')).toBe('No matches')
   })
 })
@@ -1004,7 +1084,7 @@ describe('without JavaScript', () => {
       '.slide',
       (all) => all.filter((slide) => getComputedStyle(slide).display !== 'none').length,
     )
-    expect(slides).toBe(13)
+    expect(slides).toBe(15)
     const top = await page.evaluate(
       () => document.getElementById('details')?.getBoundingClientRect().top ?? -1,
     )

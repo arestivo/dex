@@ -7,6 +7,7 @@ import type { ElementContent } from 'hast'
 import type { Parent, Root, RootContent, Text } from 'mdast'
 import type { ContainerDirective, LeafDirective, TextDirective } from 'mdast-util-directive'
 import { SKIP, visit } from 'unist-util-visit'
+import { isHandledDemo } from './demos.ts'
 import { isHandledStep } from './steps.ts'
 
 export const CALLOUT_TONES = ['info', 'warning', 'error', 'success', 'example'] as const
@@ -47,6 +48,8 @@ export function transformDirectives(tree: Root, context: DirectiveContext): void
 
     // Numbered (or already reported) by steps.ts.
     if (isHandledStep(node)) return undefined
+    // Checked and rendered by demos.ts.
+    if (isHandledDemo(node)) return undefined
 
     if (STRUCTURAL.has(node.name)) {
       context.error(misplacedMessage(node), line)
@@ -155,5 +158,5 @@ function misplacedMessage(node: Directive): string {
 function unknownMessage(node: Directive): string {
   const prefix =
     node.type === 'containerDirective' ? ':::' : node.type === 'leafDirective' ? '::' : ':'
-  return `Unknown directive "${prefix}${node.name}". Available: ${CALLOUT_TONES.map((t) => `:::${t}`).join(', ')}, :::div{.class}, :span[text]{.class}, :::step, :step[text], :::steps, ::toc, ::slot{name=...}.`
+  return `Unknown directive "${prefix}${node.name}". Available: ${CALLOUT_TONES.map((t) => `:::${t}`).join(', ')}, :::div{.class}, :span[text]{.class}, :::step, :step[text], :::steps, :::demo, ::demo-result, ::toc, ::slot{name=...}.`
 }

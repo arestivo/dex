@@ -29,6 +29,7 @@
 @import "./components/callout.css";
 @import "./components/code.css";
 @import "./components/diagram.css";
+@import "./components/demo.css";
 @import "./components/table.css";
 @import "./components/toc.css";
 @import "./pages/site-index.css";

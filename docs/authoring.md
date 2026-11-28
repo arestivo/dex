@@ -246,6 +246,33 @@ Everything is shown without JavaScript, in print, in `dex shot` images and in `d
 
 The class `step` is reserved for steps: don't use it in raw HTML or layouts.
 
+### Live demos
+
+````markdown
+::slide{#text-color}
+
+# Text colour
+
+:::demo
+```css
+p { color: green; }
+```
+```html
+<p>The quick brown fox</p>
+```
+:::
+````
+
+A `:::demo` holds one `` ```html `` block and, optionally, one `` ```css `` block (nothing else). The slide shows the code, then the result rendered **from that same code**, so what the audience reads is what runs. Use it for HTML and CSS examples instead of an `<iframe>` to a separate example file.
+
+- **Isolated both ways.** The demo's CSS only styles the demo, and the slide's CSS doesn't reach into it, so lessons see the browser's defaults (a `<p>` keeps its default margin). Inherited properties do cross: the slide's font, text size, colour, light/dark mode (`light-dark()` works) and the theme's `--color-*` variables.
+- **Placing the result.** By default it follows the code. On a slide with one demo, a `::demo-result` line puts it elsewhere: another slot (`::slot{name=right}` then `::demo-result`) or inside a `:::step` to reveal it later.
+- **It is part of the page.** No file and no request: it shows at once, prints, works without JavaScript and in the presenter window. The search matches the code, not the result.
+- **Sizes.** Inside a demo, `1em` is the slide's text size, so sizes in `em` scale with the slide. Sizes in `px` stay fixed.
+- **When to keep an `<iframe>`.** A demo isn't a separate page: media queries see the browser window, `vw`/`vh` are the window's, `position: fixed` is relative to the window, and `html`/`body`/`:root` selectors match nothing. Demos are HTML and CSS only, with no JavaScript. Examples that need any of these stay in an `<iframe>` to a file in `assets/`.
+
+Errors: a demo without `` ```html ``, a second `` ```html `` or `` ```css `` block, other content or attributes inside a demo, a demo inside another demo or in speaker notes, and a `::demo-result` on a slide without exactly one demo.
+
 ### Table of contents
 
 ```markdown

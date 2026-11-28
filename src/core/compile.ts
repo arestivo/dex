@@ -12,6 +12,7 @@ import { isDiagramLanguage, parseAlt, validateTikz } from './diagrams/block.ts'
 import { diagramFigure } from './diagrams/figure.ts'
 import type { DiagramOutcome } from './diagrams/render.ts'
 import { fillTemplate, type TemplateValues } from './layouts/template.ts'
+import { forbidDemos, renderDemos } from './markdown/demos.ts'
 import { type TocEntry, transformDirectives } from './markdown/directives.ts'
 import { isKnownLanguage as isKnown, prepareHighlighter } from './markdown/highlight.ts'
 import { extractNotes } from './markdown/notes.ts'
@@ -124,9 +125,14 @@ export async function compileDeck(
       diagnostics.warn(file, message, at(line))
 
     const extracted = extractNotes(slide.tree.children, error)
-    // Before slots: steps are revealed in source order, wherever their slot goes.
+    // Before slots: a demo's result may be placed in another slot, and steps
+    // are revealed in source order, wherever their slot goes.
+    renderDemos(extracted.content, error)
     numberSteps(extracted.content, error)
-    if (extracted.notes !== undefined) forbidSteps([...extracted.notes], error)
+    if (extracted.notes !== undefined) {
+      forbidDemos([...extracted.notes], error)
+      forbidSteps([...extracted.notes], error)
+    }
     const groups = assignSlots(extracted.content, layout, error)
     const content = new Map<string, ElementContent[]>()
 
