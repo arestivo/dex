@@ -110,6 +110,29 @@ This layout belongs to this deck only.
 
 ---
 
+::slide{#reveal layout=two-columns}
+
+# Reveal
+
+Always shown.
+
+::slot{name=left}
+
+:::steps
+- Ask the room
+- Wait for hands
+:::
+
+::slot{name=right}
+
+:::step
+Right column
+:::
+
+The answer is :step[forty-two].
+
+---
+
 ::slide{#last layout=center}
 
 # The end

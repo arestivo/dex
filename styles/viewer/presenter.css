@@ -33,6 +33,12 @@
     box-shadow: var(--chrome-shadow);
   }
 
+  /* The presenter sees the steps still to come, faintly; the audience doesn't. */
+  .presenter .deck.presenter__stage--current[data-mode="present"] .step:not([data-revealed]) {
+    visibility: visible;
+    opacity: 0.3;
+  }
+
   .presenter__side {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);

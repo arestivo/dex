@@ -32,6 +32,7 @@ Every slide starts with `::slide{#id ...}`. Ids are permanent once published: th
 - Use the layouts (`dex docs layouts`) and utility classes (`dex docs`). Don't invent CSS classes or inline styles to fix a single slide.
 - If the same arrangement keeps recurring and no layout fits, create a local layout instead (see the `author-layout` skill).
 - Put what the presenter should say (reminders, timing, questions to ask) in the slide's `:::notes` block, not on the slide. Notes are private: leave `publishNotes` as you found it.
+- Reveal parts of a slide one at a time with steps (`:::step`, `:step[text]`, `:::steps` around a list) only when the author asks or the source had them, for content whose reveal matters: an answer after a question, one stage of a process at a time. Otherwise show the slide all at once. See "Steps" in `dex docs`.
 - Keep the deck's `theme:` as you found it, and don't add one to a new deck: colours are the author's choice (see the `author-theme` skill when they ask).
 - Explain processes, flows and structures with a diagram when it is clearer than bullets: a ```` ```tikz alt="..." ```` block (see "Diagrams" in `dex docs`). Use the slide colours (`DexInk`, `DexAccent`…), keep shared styles in `tikz/preamble.tex`, and always write the alt text.
 

@@ -5,7 +5,7 @@
  */
 import { type Browser, chromium, type Page } from 'playwright-core'
 import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest'
-import { findChromium } from '../../src/cli/browser.ts'
+import { findChromium, showEveryStep } from '../../src/cli/browser.ts'
 
 const DECK = new URL('demo/', inject('baseUrl')).href
 let browser: Browser
@@ -155,7 +155,7 @@ describe('presenter mode', () => {
     const { presenter } = await openBoth()
     expect(new URL(presenter.url()).searchParams.has('presenter')).toBe(true)
     const shown = await view(presenter)
-    expect(shown).toMatchObject({ current: 'First', position: '4 / 12', deckHidden: true })
+    expect(shown).toMatchObject({ current: 'First', position: '4 / 13', deckHidden: true })
     expect(shown.next).toContain('Second')
     expect(shown.notes).toContain('Mention the third item first.')
     expect(await presenter.$$eval('.presenter [id]', (all) => all.length)).toBe(0)
@@ -183,7 +183,7 @@ describe('presenter mode', () => {
 
     await deckPage.click('.viewer-controls button[aria-label="Next slide"]')
     await presenter.waitForFunction(
-      () => document.querySelector('.presenter__position')?.textContent === '6 / 12',
+      () => document.querySelector('.presenter__position')?.textContent === '6 / 13',
     )
     expect((await view(presenter)).current).toBe('Third')
 
@@ -205,6 +205,149 @@ describe('presenter mode', () => {
     expect((await view(presenter)).timer).toBe(paused)
     await presenter.click('.presenter__timer button:last-of-type')
     expect((await view(presenter)).timer).toBe('00:00')
+  })
+})
+
+describe('steps', () => {
+  /** The visibility of each step of a slide, in step order. */
+  const steps = (page: Page, root = 'main.deck', id = 'reveal') =>
+    page.evaluate(
+      ([root, id]) =>
+        [...document.querySelectorAll(`${root} ${id ? `#${id}` : '.slide'} [data-step]`)]
+          .sort(
+            (a, b) =>
+              Number((a as HTMLElement).dataset.step) - Number((b as HTMLElement).dataset.step),
+          )
+          .map((step) => getComputedStyle(step).visibility),
+      [root, id] as const,
+    )
+  const hidden = ['hidden', 'hidden', 'hidden', 'hidden']
+  const visible = ['visible', 'visible', 'visible', 'visible']
+  const revealedUpTo = (count: number) =>
+    visible.map((_, index) => (index < count ? 'visible' : 'hidden'))
+
+  it('open hidden on a deep link, keeping their space', async () => {
+    const page = await open('#reveal')
+    expect(await steps(page)).toEqual(hidden)
+    const layout = await page.evaluate(() => {
+      const slide = document.getElementById('reveal') as Element
+      const step = slide.querySelector('[data-step="3"]') as Element
+      const always = [...slide.querySelectorAll('p')].find((p) => p.textContent === 'Always shown.')
+      return {
+        stepHeight: step.getBoundingClientRect().height,
+        always: always === undefined ? '' : getComputedStyle(always).visibility,
+      }
+    })
+    expect(layout.stepHeight).toBeGreaterThan(0)
+    expect(layout.always).toBe('visible')
+  })
+
+  it('reveal one at a time in source order, then advance', async () => {
+    const page = await open('#reveal')
+    for (let count = 1; count <= 4; count++) {
+      await page.keyboard.press('ArrowRight')
+      expect(await current(page)).toBe('reveal')
+      expect(await steps(page)).toEqual(revealedUpTo(count))
+    }
+    await page.keyboard.press('ArrowRight')
+    expect(await current(page)).toBe('last')
+  })
+
+  it('hide in reverse order, then go back, and are hidden again on return', async () => {
+    const page = await open('#reveal')
+    for (let press = 0; press < 5; press++) await page.keyboard.press('ArrowRight')
+    expect(await current(page)).toBe('last')
+    await page.keyboard.press('ArrowLeft')
+    expect(await current(page)).toBe('reveal')
+    expect(await steps(page)).toEqual(hidden)
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('ArrowLeft')
+    expect(await steps(page)).toEqual(revealedUpTo(1))
+    await page.keyboard.press('ArrowLeft')
+    expect(await steps(page)).toEqual(hidden)
+    expect(await current(page)).toBe('reveal')
+    await page.keyboard.press('ArrowLeft')
+    expect(await current(page)).toBe('banner')
+  })
+
+  it('are revealed by the next control', async () => {
+    const page = await open('#reveal')
+    await page.click('.viewer-controls button[aria-label="Next slide"]')
+    expect(await current(page)).toBe('reveal')
+    expect(await steps(page)).toEqual(revealedUpTo(1))
+  })
+
+  it('are all shown when the search lands in a hidden one', async () => {
+    const page = await open('#title')
+    await page.keyboard.press('Control+f')
+    await page.keyboard.type('forty')
+    expect(await current(page)).toBe('reveal')
+    expect(await steps(page)).toEqual(visible)
+  })
+
+  it('are all shown in print and without JavaScript', async () => {
+    const printed = await open('#reveal')
+    await printed.emulateMedia({ media: 'print' })
+    expect(await steps(printed)).toEqual(visible)
+    const plain = await open('#reveal', { javaScriptEnabled: false })
+    expect(await steps(plain)).toEqual(visible)
+  })
+
+  it('are all shown for dex fit and dex shot', async () => {
+    const page = await open('#reveal')
+    await showEveryStep(page)
+    expect(await steps(page)).toEqual(visible)
+  })
+
+  describe('in the presenter window', () => {
+    const openBoth = async (fragment: string) => {
+      const context = await browser.newContext({ viewport: { width: 1280, height: 720 } })
+      const deckPage = await context.newPage()
+      await deckPage.goto(`${DECK}${fragment}`)
+      const [presenter] = await Promise.all([
+        context.waitForEvent('page'),
+        deckPage.keyboard.press('s'),
+      ])
+      await presenter.waitForFunction(() => document.querySelector('.presenter') !== null)
+      return { deckPage, presenter }
+    }
+    const position = (page: Page) => page.textContent('.presenter__position')
+    const faint = (page: Page) =>
+      page.$$eval('.presenter__stage--current [data-step]', (all) =>
+        all.map((step) => [getComputedStyle(step).visibility, getComputedStyle(step).opacity]),
+      )
+
+    it('show the upcoming steps faintly, and the step in the position', async () => {
+      const { presenter } = await openBoth('#reveal')
+      expect(await position(presenter)).toBe('12 / 13 · step 0 of 4')
+      expect(await faint(presenter)).toEqual(Array(4).fill(['visible', '0.3']))
+    })
+
+    it('keep both windows on the same step', async () => {
+      const { deckPage, presenter } = await openBoth('#reveal')
+      await presenter.keyboard.press('ArrowRight')
+      await deckPage.waitForFunction(() =>
+        document.querySelector('#reveal [data-step="1"]')?.hasAttribute('data-revealed'),
+      )
+      expect(await steps(deckPage)).toEqual(revealedUpTo(1))
+      expect(await current(deckPage)).toBe('reveal')
+      expect(await position(presenter)).toBe('12 / 13 · step 1 of 4')
+      expect((await faint(presenter))[0]).toEqual(['visible', '1'])
+
+      await deckPage.keyboard.press('ArrowRight')
+      await presenter.waitForFunction(
+        () =>
+          document.querySelector('.presenter__position')?.textContent === '12 / 13 · step 2 of 4',
+      )
+    })
+
+    it('show the next slide with its steps hidden', async () => {
+      const { presenter } = await openBoth('#banner')
+      expect(await steps(presenter, '.presenter__stage[aria-label="Next slide"]', '')).toEqual(
+        hidden,
+      )
+    })
   })
 })
 
@@ -320,12 +463,12 @@ describe('loading indicator', () => {
     await page.waitForFunction(() => !document.documentElement.hasAttribute('data-loading'), null, {
       timeout: 8000,
     })
-    expect(await state(page)).toMatchObject({ body: 'visible', visibleSlides: 12 })
+    expect(await state(page)).toMatchObject({ body: 'visible', visibleSlides: 13 })
   })
 
   it('never hides the page without JavaScript', async () => {
     const page = await open('#first', { javaScriptEnabled: false })
-    expect(await state(page)).toMatchObject({ loading: false, body: 'visible', visibleSlides: 12 })
+    expect(await state(page)).toMatchObject({ loading: false, body: 'visible', visibleSlides: 13 })
   })
 })
 
@@ -353,7 +496,7 @@ describe('slide numbers', () => {
     const page = await open('#first')
     const shown = await number(page, 'first')
     expect(shown).toMatchObject({
-      text: '4 / 12',
+      text: '4 / 13',
       visible: true,
       opacity: '0.7',
       ariaHidden: 'true',
@@ -382,7 +525,7 @@ describe('slide numbers', () => {
         .filter((element) => getComputedStyle(element).display !== 'none')
         .map((e) => e.textContent),
     )
-    expect(visible).toEqual(Array.from({ length: 11 }, (_, index) => `${index + 2} / 12`))
+    expect(visible).toEqual(Array.from({ length: 12 }, (_, index) => `${index + 2} / 13`))
   })
 
   it('prints the numbers', async () => {
@@ -395,7 +538,7 @@ describe('slide numbers', () => {
   it('is not matched by the search', async () => {
     const page = await open('#title')
     await page.keyboard.press('Control+f')
-    await page.keyboard.type('/ 12')
+    await page.keyboard.type('/ 13')
     expect(await page.textContent('.viewer-search__count')).toBe('No matches')
   })
 })
@@ -761,7 +904,7 @@ describe('without JavaScript', () => {
       '.slide',
       (all) => all.filter((slide) => getComputedStyle(slide).display !== 'none').length,
     )
-    expect(slides).toBe(12)
+    expect(slides).toBe(13)
     const top = await page.evaluate(
       () => document.getElementById('details')?.getBoundingClientRect().top ?? -1,
     )

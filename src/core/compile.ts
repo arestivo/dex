@@ -16,6 +16,7 @@ import { type TocEntry, transformDirectives } from './markdown/directives.ts'
 import { isKnownLanguage as isKnown, prepareHighlighter } from './markdown/highlight.ts'
 import { extractNotes } from './markdown/notes.ts'
 import { collectReferences } from './markdown/references.ts'
+import { forbidSteps, numberSteps } from './markdown/steps.ts'
 import { contentOf, markdownToHast } from './markdown/to-hast.ts'
 import {
   type CompiledDeck,
@@ -118,6 +119,9 @@ export async function compileDeck(
       diagnostics.warn(file, message, at(line))
 
     const extracted = extractNotes(slide.tree.children, error)
+    // Before slots: steps are revealed in source order, wherever their slot goes.
+    numberSteps(extracted.content, error)
+    if (extracted.notes !== undefined) forbidSteps([...extracted.notes], error)
     const groups = assignSlots(extracted.content, layout, error)
     const content = new Map<string, ElementContent[]>()
 

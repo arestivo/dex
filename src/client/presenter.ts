@@ -3,12 +3,15 @@
  * the deck and shows the current slide, the next one, the speaker notes, the
  * position, a timer and the clock. Slides are cloned into two stages that are
  * `.deck` elements themselves, so slide sizing and layout CSS apply unchanged.
- * It stays on the same slide as the deck window through sync.ts.
+ * It stays on the same slide and step as the deck window through sync.ts.
+ * The current slide shows the steps still to come faintly; the next slide
+ * is shown as the audience will first see it, with its steps hidden.
  */
 import { button, element } from './chrome.ts'
 import { type Action, listenForKeys } from './keyboard.ts'
 import { toggleMode } from './mode.ts'
 import { fragmentFor, resolveFragment } from './router.ts'
+import { applySteps, back, clampSteps, describeSteps, forward, stepsOf } from './steps.ts'
 import { createSync, type SlideSync } from './sync.ts'
 import {
   elapsed,
@@ -30,6 +33,8 @@ export function startPresenter(deck: HTMLElement): void {
   const slug = deck.dataset.deck ?? ''
   const notesPublished = deck.dataset.notes !== 'omitted'
   let current = -1
+  let revealed = 0
+  const stepCounts = slides.map((slide) => stepsOf(slide).length)
   let sync: SlideSync | undefined
   let timer: TimerState = IDLE_TIMER
 
@@ -43,6 +48,7 @@ export function startPresenter(deck: HTMLElement): void {
     return el
   }
   const currentStage = stage('Current slide')
+  currentStage.classList.add('presenter__stage--current')
   const nextStage = stage('Next slide')
   nextStage.setAttribute('aria-hidden', 'true')
   const notes = element('section', 'presenter__notes', { 'aria-label': 'Speaker notes' })
@@ -74,9 +80,9 @@ export function startPresenter(deck: HTMLElement): void {
   const timerBox = element('span', 'presenter__timer')
   timerBox.append(time, pause, restart)
   bar.append(
-    button('previous', 'Previous slide', () => go(current - 1)),
+    button('previous', 'Previous slide', moveBack),
     position,
-    button('next', 'Next slide', () => go(current + 1)),
+    button('next', 'Next slide', moveForward),
     timerBox,
     clock,
   )
@@ -90,6 +96,7 @@ export function startPresenter(deck: HTMLElement): void {
     clone.removeAttribute('id')
     clone.setAttribute('data-current', '')
     clone.querySelector(':scope > template.slide__notes')?.remove()
+    applySteps(clone, 0)
     return clone
   }
 
@@ -98,6 +105,7 @@ export function startPresenter(deck: HTMLElement): void {
     if (target === current) return
     const first = current === -1
     current = target
+    revealed = 0
     const slide = slides[target] as HTMLElement
     currentStage.replaceChildren(copy(slide))
     const following = slides[target + 1]
@@ -109,13 +117,40 @@ export function startPresenter(deck: HTMLElement): void {
       nextStage.replaceChildren(copy(following))
     }
     renderNotes(slide)
-    position.textContent = `${target + 1} / ${slides.length}`
+    renderPosition()
     // The timer starts with the talk: the first slide change, not the opening.
     if (!first) {
       timer = startOnce(timer, performance.now())
       renderTimer()
     }
-    sync?.publish(slide.id)
+    sync?.publish(slide.id, 0)
+  }
+
+  function reveal(count: number): void {
+    revealed = clampSteps(count, stepCounts[current] ?? 0)
+    const clone = currentStage.firstElementChild
+    if (clone !== null) applySteps(clone, revealed)
+    renderPosition()
+    timer = startOnce(timer, performance.now())
+    renderTimer()
+    sync?.publish(ids[current] as string, revealed)
+  }
+
+  function moveForward(): void {
+    const move = forward(revealed, stepCounts[current] ?? 0)
+    if (move === 'next-slide') go(current + 1)
+    else if (move !== 'previous-slide') reveal(move.reveal)
+  }
+
+  function moveBack(): void {
+    const move = back(revealed)
+    if (move === 'previous-slide') go(current - 1)
+    else if (move !== 'next-slide') reveal(move.reveal)
+  }
+
+  function renderPosition(): void {
+    const steps = describeSteps(revealed, stepCounts[current] ?? 0)
+    position.textContent = `${current + 1} / ${slides.length}${steps ? ` · ${steps}` : ''}`
   }
 
   function renderNotes(slide: HTMLElement): void {
@@ -154,8 +189,8 @@ export function startPresenter(deck: HTMLElement): void {
   }
 
   const actions: Record<Action, () => void> = {
-    next: () => go(current + 1),
-    previous: () => go(current - 1),
+    next: moveForward,
+    previous: moveBack,
     first: () => go(0),
     last: () => go(slides.length - 1),
     'toggle-mode': toggleMode,
@@ -166,9 +201,11 @@ export function startPresenter(deck: HTMLElement): void {
   syncWithUrl()
   renderTimer()
   renderClock()
-  sync = createSync(slug, (id) => {
+  sync = createSync(slug, (id, step) => {
     const index = ids.indexOf(id)
-    if (index !== -1) go(index)
+    if (index === -1) return
+    go(index)
+    if (step !== revealed) reveal(step)
   })
   window.addEventListener('hashchange', syncWithUrl)
   listenForKeys((action) => actions[action]())

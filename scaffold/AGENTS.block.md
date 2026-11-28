@@ -36,6 +36,7 @@ Don't guess the syntax: read the reference that matches the installed engine.
 - When the same slide arrangement keeps recurring, create a layout and document it in its `layout.md`: a local layout (`dex new layout <name>`) when several decks could use it, or a deck layout (`dex new layout <name> --deck <slug>`) when only one deck needs it. A layout can't reuse the name of a wider one (built-in, then local).
 - **The theme is the author's choice.** Don't change a deck's `theme:`, change `dex.yaml`, or create or edit themes unless the user asks. When they ask for other colours, check `dex docs themes` for an existing theme first, and otherwise follow the `author-theme` skill.
 - **Speaker notes are private.** Put what the presenter should say in a slide's `:::notes` block, not on the slide. Never set `publishNotes` or run `dex build --publish-notes` unless the user asks: published notes are readable by anyone.
+- **Steps only when they matter.** Steps (`:::step`, `:step[text]`, `:::steps` around a list) reveal parts of a slide one at a time. Use them only when the author asks or the source deck had them, and keep them for content whose reveal matters: an answer after a question, one stage of a process at a time. Otherwise a slide shows all at once.
 - Draw diagrams in ```` ```tikz alt="..." ```` blocks (see "Diagrams" in `dex docs`). Use the slide colours (`DexInk`, `DexAccent`, `DexAccentSoft`…) so they work in light and dark mode, and put shared `\tikzset` styles in `tikz/preamble.tex` instead of repeating them in every block.
 
 ### Commands
@@ -61,6 +62,7 @@ When a diagram fails to render because TeX is missing or incomplete, or `dex fit
 1. `dex check` reports no errors and no warnings for the decks you touched.
 2. `dex fit` reports no overflow for them.
 3. You looked at the changed slides: `dex shot <slug> <id...>` and open the images (or `dex dev`, in light and dark mode: `d` toggles). For diagrams, check that labels fit their boxes and arrows don't cross boxes.
+   `dex shot` and `dex fit` show every step, so they check a slide's full content; to see the reveal itself, use `dex dev` and press `→`.
 4. You reported any judgement calls (splits, new ids, dropped content) to the author.
 
 ### Skills

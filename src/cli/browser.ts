@@ -4,6 +4,7 @@
  * one, which keeps the toolchain reproducible under Nix.
  */
 import { existsSync } from 'node:fs'
+import type { Page } from 'playwright-core'
 import { findProgram } from '../core/diagrams/toolchain.ts'
 
 const CANDIDATES = ['chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable']
@@ -31,4 +32,13 @@ export function findChromium(): string {
   const found = locateChromium()
   if ('path' in found) return found.path
   throw new Error(found.problem)
+}
+
+/**
+ * Shows every step of every slide, whatever the viewer revealed: `dex fit`
+ * and `dex shot` check a slide's full content. Unlayered, so it beats the
+ * viewer's layered rules.
+ */
+export async function showEveryStep(page: Page): Promise<void> {
+  await page.addStyleTag({ content: '.step { visibility: visible !important; }' })
 }

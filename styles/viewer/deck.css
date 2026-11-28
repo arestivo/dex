@@ -64,6 +64,12 @@
     display: none;
   }
 
+  /* Steps not revealed yet keep their space, so nothing moves as they appear,
+     and are out of the accessibility tree until then. */
+  .deck[data-mode="present"] .step:not([data-revealed]) {
+    visibility: hidden;
+  }
+
   .deck[data-mode="present"][data-idle] {
     cursor: none;
   }

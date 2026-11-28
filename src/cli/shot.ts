@@ -14,7 +14,7 @@ import type { ContentLocations } from '../core/config.ts'
 import { formatDiagnostic, hasErrors, sortDiagnostics } from '../core/diagnostics.ts'
 import { compileWorkspace } from '../core/workspace.ts'
 import { MODE_STORAGE_KEY } from '../shared/constants.ts'
-import { findChromium } from './browser.ts'
+import { findChromium, showEveryStep } from './browser.ts'
 
 export const SHOTS_DIR = join('.dex', 'shots')
 const VIEWPORT = { width: 1280, height: 720 } as const
@@ -71,6 +71,7 @@ export async function runShot(content: ContentLocations, args: readonly string[]
       await page.addStyleTag({
         content: '.viewer-controls, .viewer-progress, .viewer-toast { display: none !important; }',
       })
+      await showEveryStep(page)
       for (const id of targets) {
         await page.evaluate(async (slide) => {
           location.hash = slide

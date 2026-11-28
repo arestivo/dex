@@ -54,7 +54,7 @@ Ask only if the source is missing or ambiguous.
 | `<img src=... style="width: 30%">` | `![alt](assets/x.png)`, or `<img src=... alt=... style="height: 30cqh">` when a size is needed |
 | `\#text` at line start inside a box | keep the escape: `\#text` |
 | `<i class="fa ...">` icons | remove, or replace with words |
-| `--` incremental reveals | not supported: merge into one slide and report it |
+| `--` incremental reveals | one Dex slide (one id): the content after each `--` goes in its own `:::step` block, or `:::steps` when each increment adds one list item. See "Steps" in `dex docs`. |
 | `???` speaker notes | a `:::notes` block at the end of the slide (Markdown kept). Don't set `publishNotes`: notes stay private unless the author asks. |
 | `count: false`, `background-image:`, `exclude: true` | report. Drop `exclude: true` slides only if the user agrees. |
 

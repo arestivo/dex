@@ -44,6 +44,11 @@
       overflow: visible;
     }
 
+    /* Print shows every step, whatever was revealed on screen. */
+    .step {
+      visibility: visible;
+    }
+
     /* Diagrams print in their light rendering (this layer beats components). */
     .diagram__render--light {
       display: block;

@@ -208,6 +208,44 @@ A slide can have one `:::notes` block, in Markdown, anywhere at its top level (n
 
 **Notes are private by default.** `dex dev` always shows them, but `dex build` leaves them out of the built site unless they are published: `publishNotes: true` in the deck's front matter, `publishNotes: true` in `dex.yaml` (every deck that doesn't set its own), or `dex build --publish-notes` (every deck, for that build). A built site's contents can be read by anyone, so only publish notes that may be public.
 
+### Steps
+
+````markdown
+::slide{#preflight}
+
+# Preflight
+
+The browser asks first:
+
+:::steps
+- `OPTIONS /api` with the method it wants
+- the server answers with `Access-Control-Allow-*`
+- then the real request
+:::
+
+:::step
+```http
+Access-Control-Allow-Origin: https://app.example
+```
+:::
+
+So who enforces CORS? :step[The browser, not the server.]
+````
+
+Steps are parts of a slide revealed one at a time while presenting:
+
+- `:::step` … `:::` around blocks;
+- `:step[text]` around part of a line;
+- `:::steps` around a list: each item is a step, together with its nested list. The block holds the list and nothing else.
+
+A slide opens with its steps hidden. They keep their space, so nothing moves as they appear. **Next** reveals the next step and only goes to the next slide once every step is shown. **Previous** hides the last shown step, then goes back. Arriving at a slide in any way (back, a link, the other window) hides its steps again.
+
+Steps are numbered in the order they appear in the source, whatever slot holds them, and they may sit inside other blocks (callouts, `:::div`, columns). They can't be nested, take no attributes (put a `:::div{.class}` inside the step), and don't work in speaker notes.
+
+Everything is shown without JavaScript, in print, in `dex shot` images and in `dex fit` (which measures the slide with every step shown). The search shows every step of the slide it lands on. The presenter window shows the steps still to come faintly, and the position as `12 / 68 · step 1 of 3`.
+
+The class `step` is reserved for steps: don't use it in raw HTML or layouts.
+
 ### Table of contents
 
 ```markdown

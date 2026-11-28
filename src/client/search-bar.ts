@@ -24,7 +24,7 @@ const CURRENT = 'dex-search-current'
 export interface SearchNavigation {
   /** Index of the slide shown. */
   readonly current: () => number
-  /** Shows a slide; the search announces it itself. */
+  /** Shows a slide with all its steps; the search announces it itself. */
   readonly show: (index: number) => void
 }
 
@@ -114,7 +114,8 @@ export function createSearch(
       live.textContent = 'No matches'
       return
     }
-    if (match.slide !== navigation.current()) navigation.show(match.slide)
+    // Also on the current slide: the match may be in a step not revealed yet.
+    navigation.show(match.slide)
     count.textContent = `${current + 1} of ${matches.length}`
     const label = slides[match.slide]?.getAttribute('aria-label') ?? ''
     live.textContent = `${count.textContent}. ${label}`

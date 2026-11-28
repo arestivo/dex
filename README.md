@@ -87,13 +87,13 @@ Inside this repository, `pnpm dev`, `pnpm check:decks`, `pnpm build`… do the s
 
 | Key | Action |
 | --- | --- |
-| `→` `↓` `Space` `PageDown` `n` | next slide |
-| `←` `↑` `Shift+Space` `PageUp` `p` | previous slide |
+| `→` `↓` `Space` `PageDown` `n` | next step of the slide, then next slide |
+| `←` `↑` `Shift+Space` `PageUp` `p` | hide the last shown step, then previous slide |
 | `Home` / `End` | first / last slide |
 | `d` | toggle light/dark mode |
 | `Ctrl+F` (`Cmd+F`) | search every slide (highlights matches as you type) |
 | `F3` / `Shift+F3`, or `Enter` / `Shift+Enter` in the field | next / previous match |
 | `Esc` | close the search |
-| `s` | open the presenter window (current and next slides, speaker notes, timer); both windows stay on the same slide |
+| `s` | open the presenter window (current and next slides, speaker notes, timer); both windows stay on the same slide and step |
 
 Swipe left/right on touch screens. The 🔗 button copies a link to the current slide.
