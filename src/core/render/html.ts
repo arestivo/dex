@@ -50,6 +50,10 @@ export const LOADING_STYLE = [
   `${LOADING}[${MODE_ATTRIBUTE}="light"]{color-scheme:light}`,
   `${LOADING}[${MODE_ATTRIBUTE}="dark"]{color-scheme:dark}`,
   `${LOADING} body{visibility:hidden}`,
+  // Hidden is not enough: the browser would still lay out every slide of the
+  // deck as one long document before the viewer shows one, about half of the
+  // time to the first slide on long decks. Out of layout, they cost nothing.
+  `${LOADING} .slide{display:none}`,
   `${LOADING}::after{content:"";position:fixed;top:50%;left:50%;box-sizing:border-box;width:2.5rem;height:2.5rem;margin:-1.25rem 0 0 -1.25rem;border:.25rem solid color-mix(in srgb,currentColor 18%,transparent);border-top-color:var(--color-accent,currentColor);border-radius:50%;opacity:0;animation:dex-loading-in .2s .3s forwards,dex-loading-spin .8s linear infinite}`,
   `@media (prefers-reduced-motion:reduce){${LOADING}::after{animation:dex-loading-in .2s .3s forwards}}`,
   '@keyframes dex-loading-in{to{opacity:1}}',

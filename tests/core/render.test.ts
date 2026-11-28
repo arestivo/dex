@@ -57,6 +57,8 @@ describe('renderDeckPage', () => {
     expect(html).toContain('setAttribute("data-loading",\'\')')
     expect(html).toMatch(/setTimeout\(function\(\)\{r\.removeAttribute\("data-loading"\)\},5000\)/)
     expect(html).toContain(':root[data-loading] body{visibility:hidden}')
+    // Slides stay out of layout until the viewer shows one.
+    expect(html).toContain(':root[data-loading] .slide{display:none}')
     expect(html).toContain(':root[data-loading]::after{')
     expect(html).toContain('@media (prefers-reduced-motion:reduce)')
     // Every loading rule is scoped to the loading state (the style is unlayered).

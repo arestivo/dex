@@ -429,6 +429,10 @@ describe('loading indicator', () => {
         visibleSlides: [...document.querySelectorAll('.slide')].filter(
           (slide) => getComputedStyle(slide).display !== 'none',
         ).length,
+        /** Slides with a layout box: none while loading, so the deck isn't laid out. */
+        laidOut: [...document.querySelectorAll('.slide')].filter(
+          (slide) => slide.getClientRects().length > 0,
+        ).length,
       }
     })
 
@@ -440,6 +444,7 @@ describe('loading indicator', () => {
       body: 'hidden',
       indicator: '""',
       delay: '0.3s, 0s',
+      laidOut: 0,
     })
     release()
     await page.waitForFunction(() => !document.documentElement.hasAttribute('data-loading'))
@@ -447,6 +452,7 @@ describe('loading indicator', () => {
       body: 'visible',
       indicator: 'none',
       visibleSlides: 1,
+      laidOut: 1,
     })
     expect(await current(page)).toBe('first')
   })
@@ -463,7 +469,7 @@ describe('loading indicator', () => {
     await page.waitForFunction(() => !document.documentElement.hasAttribute('data-loading'), null, {
       timeout: 8000,
     })
-    expect(await state(page)).toMatchObject({ body: 'visible', visibleSlides: 13 })
+    expect(await state(page)).toMatchObject({ body: 'visible', visibleSlides: 13, laidOut: 13 })
   })
 
   it('never hides the page without JavaScript', async () => {
